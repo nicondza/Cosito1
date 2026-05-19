@@ -81,6 +81,29 @@
         </div>
       </div>
     </div>
+
+    <div id="battle-arena-modal" class="battle-arena-modal hidden" role="dialog" aria-modal="true" aria-labelledby="battle-arena-title">
+      <div class="battle-arena-card">
+        <div class="battle-arena-header">
+          <h3 id="battle-arena-title">Batalla en curso</h3>
+          <p id="battle-turn-label"></p>
+        </div>
+        <section class="battle-hand-panel">
+          <h4>Tu mano</h4>
+          <div id="battle-hand" class="battle-hand"></div>
+        </section>
+        <section class="battle-board">
+          <div>
+            <h4>Campo rival</h4>
+            <div id="battle-opponent-slots" class="battle-slots"></div>
+          </div>
+          <div>
+            <h4>Tu campo</h4>
+            <div id="battle-player-slots" class="battle-slots"></div>
+          </div>
+        </section>
+      </div>
+    </div>
     <script src="script.js"></script>
   </body>
 </html>
