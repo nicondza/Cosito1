@@ -38,6 +38,7 @@ const challengeMessage = document.querySelector('#challenge-message');
 const acceptChallengeButton = document.querySelector('#accept-challenge-btn');
 const rejectChallengeButton = document.querySelector('#reject-challenge-btn');
 const battleArenaModal = document.querySelector('#battle-arena-modal');
+const battleArenaCloseButton = document.querySelector('#battle-arena-close-btn');
 const battleTurnLabel = document.querySelector('#battle-turn-label');
 const battleHand = document.querySelector('#battle-hand');
 const battleOpponentSlots = document.querySelector('#battle-opponent-slots');
@@ -127,6 +128,7 @@ let savedDeck = { characterIds: [], mainIds: [] };
 let onlineUsers = {};
 let activeChallenge = null;
 let activeBattleSession = null;
+let battleArenaDismissed = false;
 let selectedHandCardId = null;
 
 buttons.forEach((button) => {
@@ -379,11 +381,19 @@ function renderOnlineUsers() {
       <article class="battle-user-card">
         <p class="battle-user-name">${escapeHtml(user.name || 'Usuario sin nombre')}</p>
         <button class="save-character-btn challenge-user-btn" type="button" data-challenge-user-id="${escapeHtml(user.uid)}" data-challenge-user-name="${escapeHtml(user.name || 'Usuario')}">
-          Retar a batalla
+          ${getOpenBattleWithUser(user.uid) ? 'Reabrir batalla' : 'Retar a batalla'}
         </button>
       </article>
     `)
     .join('');
+}
+
+function getOpenBattleWithUser(targetUserId) {
+  if (!activeBattleSession || !currentUserId || !targetUserId) return null;
+  const players = getBattlePlayers(activeBattleSession);
+  const includesMe = players.includes(currentUserId);
+  const includesTarget = players.includes(targetUserId);
+  return includesMe && includesTarget && activeBattleSession.status === 'active' ? activeBattleSession : null;
 }
 
 async function sendBattleChallenge(targetUserId, targetUserName) {
@@ -1110,6 +1120,12 @@ document.addEventListener('click', (event) => {
 battleUsersList.addEventListener('click', (event) => {
   const trigger = event.target.closest('.challenge-user-btn');
   if (!trigger) return;
+  const openBattle = getOpenBattleWithUser(trigger.dataset.challengeUserId);
+  if (openBattle) {
+    battleArenaDismissed = false;
+    renderBattleArena();
+    return;
+  }
   sendBattleChallenge(trigger.dataset.challengeUserId, trigger.dataset.challengeUserName).catch((error) => {
     console.error('No se pudo enviar el desafío:', error);
     setSyncStatus('No se pudo enviar el desafío de batalla.', 'error');
@@ -1166,6 +1182,11 @@ rejectChallengeButton.addEventListener('click', () => {
   });
 });
 
+battleArenaCloseButton.addEventListener('click', () => {
+  battleArenaDismissed = true;
+  battleArenaModal.classList.add('hidden');
+});
+
 
 battleSessionsRef.on('value', (snapshot) => {
   if (!currentUserId) return;
@@ -1173,9 +1194,18 @@ battleSessionsRef.on('value', (snapshot) => {
   const current = Object.values(sessions).find((session) => (session.players || []).includes(currentUserId) && session.status === 'active');
   if (!current) {
     activeBattleSession = null;
+    battleArenaDismissed = false;
     battleArenaModal.classList.add('hidden');
+    renderOnlineUsers();
     return;
   }
+  const previousBattleId = activeBattleSession?.id;
   activeBattleSession = current;
-  renderBattleArena();
+  if (previousBattleId !== current.id) {
+    battleArenaDismissed = false;
+  }
+  if (!battleArenaDismissed) {
+    renderBattleArena();
+  }
+  renderOnlineUsers();
 });
