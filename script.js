@@ -130,6 +130,7 @@ let activeChallenge = null;
 let activeBattleSession = null;
 let battleArenaDismissed = false;
 let selectedHandCardId = null;
+let pendingAttack = null;
 
 buttons.forEach((button) => {
   button.addEventListener('click', () => {
@@ -496,6 +497,58 @@ function getPlayerState(session, uid) {
   return (session.playerStates || {})[uid] || { hand: [], deck: [] };
 }
 
+function getStatValue(character, attribute) {
+  return Number.parseInt(character?.[attribute] ?? '0', 10) || 0;
+}
+
+async function resolveAttack(session, attackerSlotId, targetSlotId, attribute) {
+  const attackerSlot = (session.fieldSlots || []).find((slot) => slot.id === attackerSlotId);
+  const targetSlot = (session.fieldSlots || []).find((slot) => slot.id === targetSlotId);
+  if (!attackerSlot || !targetSlot || !attackerSlot.cardId || !targetSlot.cardId) return;
+
+  const attackerCard = characters.find((entry) => entry.id === attackerSlot.cardId);
+  const targetCard = characters.find((entry) => entry.id === targetSlot.cardId);
+  if (!attackerCard || !targetCard) return;
+
+  const attackerValue = getStatValue(attackerCard, attribute);
+  const targetValue = getStatValue(targetCard, attribute);
+  const updatedSlots = [...session.fieldSlots];
+  const updatedPlayerStates = { ...(session.playerStates || {}) };
+  let loserCardId = '';
+
+  if (attackerValue < targetValue) {
+    loserCardId = attackerSlot.cardId;
+    const loserIndex = updatedSlots.findIndex((slot) => slot.id === attackerSlotId);
+    updatedSlots[loserIndex] = { ...updatedSlots[loserIndex], cardId: '', faceDown: false };
+  } else if (targetValue < attackerValue) {
+    loserCardId = targetSlot.cardId;
+    const loserIndex = updatedSlots.findIndex((slot) => slot.id === targetSlotId);
+    updatedSlots[loserIndex] = { ...updatedSlots[loserIndex], cardId: '', faceDown: false };
+  }
+
+  if (!loserCardId) {
+    window.alert(`Empate en ${attribute}. Ninguna carta desaparece.`);
+    return;
+  }
+
+  Object.keys(updatedPlayerStates).forEach((uid) => {
+    const state = updatedPlayerStates[uid] || { hand: [], deck: [] };
+    updatedPlayerStates[uid] = {
+      ...state,
+      hand: (state.hand || []).filter((id) => id !== loserCardId),
+      deck: (state.deck || []).filter((id) => id !== loserCardId),
+    };
+  });
+
+  await battleSessionsRef.child(session.id).update({
+    fieldSlots: updatedSlots,
+    playerStates: updatedPlayerStates,
+    updatedAt: getTimestamp(),
+  });
+
+  window.alert(`Ataque con ${attribute}: ${attackerCard.name} (${attackerValue}) vs ${targetCard.name} (${targetValue}). La carta derrotada desapareció del mazo y de la mano.`);
+}
+
 function renderBattleArena() {
   if (!activeBattleSession || !currentUserId) return;
   const session = activeBattleSession;
@@ -521,7 +574,9 @@ function renderBattleArena() {
       const card = slot.cardId ? characters.find((entry) => entry.id === slot.cardId) : null;
       const hiddenForOpponent = slot.faceDown && !isPlayer;
       const label = hiddenForOpponent ? 'Carta boca abajo' : (card?.name || 'Vacío');
-      return `<button class="battle-slot ${slot.cardId ? 'occupied' : ''}" data-battle-slot-id="${slot.id}" ${!isPlayer || slot.cardId ? 'disabled' : ''}>${escapeHtml(label)}</button>`;
+      const canPlace = isPlayer && !slot.cardId;
+      const canSelectAttack = isPlayer && slot.cardId;
+      return `<button class="battle-slot ${slot.cardId ? 'occupied' : ''} ${canSelectAttack ? 'can-attack' : ''}" data-battle-slot-id="${slot.id}" ${canPlace ? '' : 'data-cannot-place="true"'}>${escapeHtml(label)}</button>`;
     }).join('');
   };
 
@@ -1142,31 +1197,65 @@ document.addEventListener('click', (event) => {
   }
 
   const targetSlot = event.target.closest('[data-battle-slot-id]');
-  if (!targetSlot || !activeBattleSession || !selectedHandCardId || !currentUserId) return;
+  if (!targetSlot || !activeBattleSession || !currentUserId) return;
   if (activeBattleSession.currentTurnUid !== currentUserId) return;
 
-  const faceDown = window.confirm('¿Quieres colocarla boca abajo?');
-  const slotId = targetSlot.dataset.battleSlotId;
   const session = activeBattleSession;
-  const myState = getPlayerState(session, currentUserId);
-  if (!myState.hand.includes(selectedHandCardId)) return;
+  const slotId = targetSlot.dataset.battleSlotId;
+  const clickedSlot = (session.fieldSlots || []).find((slot) => slot.id === slotId);
+  if (!clickedSlot) return;
 
-  const fieldSlots = (session.fieldSlots || []).map((slot) => (slot.id === slotId ? { ...slot, cardId: selectedHandCardId, faceDown } : slot));
-  const updatedHand = myState.hand.filter((id) => id !== selectedHandCardId);
-  const updatedDeck = [...myState.deck];
-  if (updatedDeck.length) {
-    updatedHand.push(updatedDeck.shift());
+  if (!clickedSlot.cardId) {
+    if (!selectedHandCardId) return;
+    const myState = getPlayerState(session, currentUserId);
+    if (!myState.hand.includes(selectedHandCardId)) return;
+    const faceDown = window.confirm('¿Quieres colocarla boca abajo?');
+    const fieldSlots = (session.fieldSlots || []).map((slot) => (slot.id === slotId ? { ...slot, cardId: selectedHandCardId, faceDown } : slot));
+    const updatedHand = myState.hand.filter((id) => id !== selectedHandCardId);
+    const updatedDeck = [...myState.deck];
+    if (updatedDeck.length) {
+      updatedHand.push(updatedDeck.shift());
+    }
+    const opponentUid = session.players.find((uid) => uid !== currentUserId);
+
+    battleSessionsRef.child(session.id).update({
+      fieldSlots,
+      currentTurnUid: opponentUid,
+      [`playerStates/${currentUserId}/hand`]: updatedHand,
+      [`playerStates/${currentUserId}/deck`]: updatedDeck,
+      updatedAt: getTimestamp(),
+    });
+    selectedHandCardId = null;
+    return;
   }
-  const opponentUid = session.players.find((uid) => uid !== currentUserId);
 
-  battleSessionsRef.child(session.id).update({
-    fieldSlots,
-    currentTurnUid: opponentUid,
-    [`playerStates/${currentUserId}/hand`]: updatedHand,
-    [`playerStates/${currentUserId}/deck`]: updatedDeck,
-    updatedAt: getTimestamp(),
-  });
-  selectedHandCardId = null;
+  if (clickedSlot.ownerUid !== currentUserId) {
+    if (!pendingAttack || clickedSlot.faceDown) return;
+    resolveAttack(session, pendingAttack.attackerSlotId, slotId, pendingAttack.attribute).catch((error) => {
+      console.error('No se pudo resolver el ataque:', error);
+    });
+    pendingAttack = null;
+    return;
+  }
+
+  const attackerCard = characters.find((entry) => entry.id === clickedSlot.cardId);
+  if (!attackerCard) return;
+  const wantsAttack = window.confirm(`¿Quieres atacar con ${attackerCard.name}?`);
+  if (!wantsAttack) return;
+
+  const selectedAttribute = window.prompt(
+    `Elige atributo para atacar con ${attackerCard.name}:\nmagic (${attackerCard.magic}), strength (${attackerCard.strength}), intelligence (${attackerCard.intelligence}), speed (${attackerCard.speed})`,
+    'speed',
+  );
+  const normalized = (selectedAttribute || '').trim().toLowerCase();
+  const validAttributes = ['magic', 'strength', 'intelligence', 'speed'];
+  if (!validAttributes.includes(normalized)) {
+    window.alert('Atributo no válido. Usa: magic, strength, intelligence o speed.');
+    return;
+  }
+
+  pendingAttack = { attackerSlotId: slotId, attribute: normalized };
+  window.alert('Ahora selecciona una carta rival boca arriba para completar el ataque.');
 }
 );
 
