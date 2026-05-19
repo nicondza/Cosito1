@@ -17,6 +17,7 @@ const buttons = document.querySelectorAll('.menu-btn');
 const panels = document.querySelectorAll('.panel');
 const personajesPanel = document.querySelector('#personajes');
 const addCharacterButton = document.querySelector('.add-character-btn');
+const randomCharacterButton = document.querySelector('.random-character-btn');
 
 const characterTypes = [
   { type: 'Brujas', clans: ['Luna Carmesí', 'Hijas del Caldero', 'Las Espinas Negras', 'Coven Eclipse'] },
@@ -115,6 +116,14 @@ function getCharacterRef(characterId) {
 
 function getTimestamp() {
   return new Date().toISOString();
+}
+
+function getRandomInt(min, max) {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+function getRandomCharacterTypeEntry() {
+  return characterTypes[getRandomInt(0, characterTypes.length - 1)];
 }
 
 function setSyncStatus(message, type = 'loading') {
@@ -489,6 +498,44 @@ function openForm() {
   document.querySelector('#character-name').focus();
 }
 
+function buildRandomCharacter(nameNumber) {
+  const selectedType = getRandomCharacterTypeEntry();
+  const selectedClan = selectedType.clans[getRandomInt(0, selectedType.clans.length - 1)];
+
+  return {
+    id: crypto.randomUUID(),
+    name: String(nameNumber),
+    type: selectedType.type,
+    clan: selectedClan,
+    magic: String(getRandomInt(1, 100)),
+    strength: String(getRandomInt(1, 100)),
+    intelligence: String(getRandomInt(1, 100)),
+    speed: String(getRandomInt(1, 100)),
+    story: 'Generado automáticamente',
+    image: '',
+  };
+}
+
+async function createRandomCharacters() {
+  const quantityInput = document.querySelector('#random-character-quantity');
+  const quantity = Number.parseInt(quantityInput.value, 10);
+
+  if (Number.isNaN(quantity) || quantity < 1 || quantity > 20) {
+    setSyncStatus('Selecciona una cantidad válida entre 1 y 20 para crear personajes automáticos.', 'error');
+    return;
+  }
+
+  const randomCharacters = Array.from({ length: quantity }, (_, index) => buildRandomCharacter(index + 1));
+
+  try {
+    await Promise.all(randomCharacters.map((character) => saveCharacter(character)));
+    setSyncStatus(`Se crearon ${quantity} personaje(s) aleatoriamente y se guardaron en Firebase.`, 'success');
+  } catch (error) {
+    console.error('No se pudieron crear personajes aleatorios en Firebase:', error);
+    setSyncStatus('No se pudieron crear los personajes aleatorios. Revisa la conexión o las reglas de Firebase.', 'error');
+  }
+}
+
 function createCharacterForm() {
   personajesPanel.insertAdjacentHTML(
     'beforeend',
@@ -628,6 +675,7 @@ function createCharacterForm() {
 
 addCharacterButton.textContent = 'Crear personaje';
 addCharacterButton.addEventListener('click', openForm);
+randomCharacterButton.addEventListener('click', createRandomCharacters);
 createCharacterForm();
 renderGallery();
 setSyncStatus('Conectando con Firebase...', 'loading');
