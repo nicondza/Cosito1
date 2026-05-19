@@ -19,7 +19,14 @@
 
       <main class="content" aria-live="polite">
         <section id="personajes" class="panel active">
-          <button class="add-character-btn" type="button">Agregar personaje</button>
+          <div class="character-actions">
+            <button class="add-character-btn" type="button">Agregar personaje</button>
+            <label class="random-character-controls">
+              Cantidad (1-20)
+              <input id="random-character-quantity" type="number" min="1" max="20" value="1">
+            </label>
+            <button class="random-character-btn" type="button">Crear Aleatoriamente</button>
+          </div>
         </section>
 
         <section id="batallas" class="panel">
