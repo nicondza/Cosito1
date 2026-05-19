@@ -147,6 +147,68 @@ body::before {
   display: block;
 }
 
+#mazo.panel {
+  max-width: 100%;
+}
+
+.deck-grid {
+  margin-top: 1rem;
+  display: grid;
+  grid-template-columns: repeat(10, minmax(0, 1fr));
+  gap: 0.6rem;
+}
+
+.deck-card {
+  min-height: 150px;
+  position: relative;
+}
+
+.deck-card .character-card-footer {
+  font-size: 0.8rem;
+}
+
+.pick-order,
+.main-badge {
+  position: absolute;
+  top: 0.4rem;
+  border-radius: 999px;
+  padding: 0.1rem 0.45rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.pick-order {
+  left: 0.4rem;
+  background: #f4e1a3;
+  color: #261a08;
+}
+
+.main-badge {
+  right: 0.4rem;
+  background: #2ecc71;
+  color: #102a14;
+}
+
+.deck-card.is-picked {
+  outline: 2px solid #f4e1a3;
+}
+
+.deck-card.is-main {
+  outline: 2px solid #2ecc71;
+}
+
+@media (max-width: 1400px) {
+  .deck-grid {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 900px) {
+  .deck-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
 .panel h2 {
   margin-top: 0;
   color: #f3ddb0;
