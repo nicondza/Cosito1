@@ -89,10 +89,6 @@
           <p id="battle-turn-label"></p>
           <button id="battle-arena-close-btn" class="cancel-character-btn battle-close-btn" type="button" aria-label="Cerrar ventana de batalla">Cerrar</button>
         </div>
-        <section class="battle-hand-panel">
-          <h4>Tu mano</h4>
-          <div id="battle-hand" class="battle-hand"></div>
-        </section>
         <section class="battle-board">
           <div>
             <h4>Campo rival</h4>
@@ -102,7 +98,23 @@
             <h4>Tu campo</h4>
             <div id="battle-player-slots" class="battle-slots"></div>
           </div>
+          <div>
+            <h4>Tu mano</h4>
+            <div id="battle-hand" class="battle-hand"></div>
+          </div>
         </section>
+      </div>
+    </div>
+
+    <div id="battle-card-action-modal" class="challenge-modal hidden" role="dialog" aria-modal="true" aria-labelledby="battle-card-action-title">
+      <div class="challenge-modal-card">
+        <h3 id="battle-card-action-title">Acción de carta</h3>
+        <p id="battle-card-action-text">¿Qué quieres hacer?</p>
+        <div class="challenge-actions">
+          <button id="battle-action-place" class="save-character-btn" type="button">COLOCAR</button>
+          <button id="battle-action-facedown" class="save-character-btn" type="button">BOCA ABAJO</button>
+          <button id="battle-action-cancel" class="cancel-character-btn" type="button">CANCELAR</button>
+        </div>
       </div>
     </div>
     <script src="script.js"></script>

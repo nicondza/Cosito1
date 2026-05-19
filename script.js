@@ -43,6 +43,10 @@ const battleTurnLabel = document.querySelector('#battle-turn-label');
 const battleHand = document.querySelector('#battle-hand');
 const battleOpponentSlots = document.querySelector('#battle-opponent-slots');
 const battlePlayerSlots = document.querySelector('#battle-player-slots');
+const battleCardActionModal = document.querySelector('#battle-card-action-modal');
+const battleActionPlaceButton = document.querySelector('#battle-action-place');
+const battleActionFaceDownButton = document.querySelector('#battle-action-facedown');
+const battleActionCancelButton = document.querySelector('#battle-action-cancel');
 
 const characterTypes = [
   { type: 'Brujas', clans: ['Luna Carmesí', 'Hijas del Caldero', 'Las Espinas Negras', 'Coven Eclipse'] },
@@ -130,7 +134,7 @@ let activeChallenge = null;
 let activeBattleSession = null;
 let battleArenaDismissed = false;
 let selectedHandCardId = null;
-let pendingAttack = null;
+let pendingPlacementMode = null;
 
 buttons.forEach((button) => {
   button.addEventListener('click', () => {
@@ -573,16 +577,45 @@ function renderBattleArena() {
     slotsContainer.innerHTML = slots.filter((slot) => slot.ownerUid === ownerUid).map((slot) => {
       const card = slot.cardId ? characters.find((entry) => entry.id === slot.cardId) : null;
       const hiddenForOpponent = slot.faceDown && !isPlayer;
-      const label = hiddenForOpponent ? 'Carta boca abajo' : (card?.name || 'Vacío');
-      const canPlace = isPlayer && !slot.cardId;
-      const canSelectAttack = isPlayer && slot.cardId;
-      return `<button class="battle-slot ${slot.cardId ? 'occupied' : ''} ${canSelectAttack ? 'can-attack' : ''}" data-battle-slot-id="${slot.id}" ${canPlace ? '' : 'data-cannot-place="true"'}>${escapeHtml(label)}</button>`;
+      const canPlace = isPlayer && !slot.cardId && Boolean(selectedHandCardId) && Boolean(pendingPlacementMode);
+      const canInspect = Boolean(slot.cardId);
+      const content = slot.cardId
+        ? renderBattleCharacterCard(card, { hidden: hiddenForOpponent })
+        : '<span class="battle-slot-empty">Vacío</span>';;
+      return `<button class="battle-slot ${slot.cardId ? 'occupied' : ''} ${slot.faceDown ? 'facedown' : ''}" data-battle-slot-id="${slot.id}" ${(!canPlace && !canInspect) ? 'disabled' : ''}>${content}</button>`;
     }).join('');
   };
 
   renderSlots(opponentUid, battleOpponentSlots, false);
   renderSlots(currentUserId, battlePlayerSlots, true);
   battleArenaModal.classList.remove('hidden');
+}
+
+function renderBattleCharacterCard(card, { hidden = false } = {}) {
+  if (hidden) {
+    return '<span class="battle-facedown-plate" aria-label="Carta boca abajo">◆</span>';
+  }
+  if (!card) {
+    return '<span class="battle-slot-empty">Carta</span>';
+  }
+  return `
+    <span class="battle-mini-card" style="${getTypeColorStyles(card.type)}">
+      <span class="battle-mini-name">${escapeHtml(card.name)}</span>
+      ${card.image ? `<img class="battle-mini-image" src="${escapeHtml(card.image)}" alt="${escapeHtml(card.name)}">` : '<span class="battle-mini-image placeholder-image">Sin imagen</span>'}
+      <span class="battle-mini-meta">${escapeHtml(card.type)} · ${escapeHtml(card.clan)}</span>
+      <span class="battle-mini-stats">M ${escapeHtml(card.magic)} | F ${escapeHtml(card.strength)} | I ${escapeHtml(card.intelligence)} | V ${escapeHtml(card.speed)}</span>
+    </span>
+  `;
+}
+
+function showCardActionModal(cardId) {
+  selectedHandCardId = cardId;
+  pendingPlacementMode = null;
+  battleCardActionModal.classList.remove('hidden');
+}
+
+function hideCardActionModal() {
+  battleCardActionModal.classList.add('hidden');
 }
 
 async function createBattleSessionForChallenge(challengeData) {
@@ -1191,15 +1224,16 @@ battleUsersList.addEventListener('click', (event) => {
 document.addEventListener('click', (event) => {
   const handCard = event.target.closest('[data-battle-hand-id]');
   if (handCard) {
-    selectedHandCardId = handCard.dataset.battleHandId;
-    renderBattleArena();
+    showCardActionModal(handCard.dataset.battleHandId);
     return;
   }
 
   const targetSlot = event.target.closest('[data-battle-slot-id]');
-  if (!targetSlot || !activeBattleSession || !currentUserId) return;
+  if (!targetSlot || !activeBattleSession || !selectedHandCardId || !currentUserId || !pendingPlacementMode) return;
   if (activeBattleSession.currentTurnUid !== currentUserId) return;
 
+  const faceDown = pendingPlacementMode === 'facedown';
+  const slotId = targetSlot.dataset.battleSlotId;
   const session = activeBattleSession;
   const slotId = targetSlot.dataset.battleSlotId;
   const clickedSlot = (session.fieldSlots || []).find((slot) => slot.id === slotId);
@@ -1254,8 +1288,15 @@ document.addEventListener('click', (event) => {
     return;
   }
 
-  pendingAttack = { attackerSlotId: slotId, attribute: normalized };
-  window.alert('Ahora selecciona una carta rival boca arriba para completar el ataque.');
+  battleSessionsRef.child(session.id).update({
+    fieldSlots,
+    currentTurnUid: opponentUid,
+    [`playerStates/${currentUserId}/hand`]: updatedHand,
+    [`playerStates/${currentUserId}/deck`]: updatedDeck,
+    updatedAt: getTimestamp(),
+  });
+  selectedHandCardId = null;
+  pendingPlacementMode = null;
 }
 );
 
@@ -1298,3 +1339,9 @@ battleSessionsRef.on('value', (snapshot) => {
   }
   renderOnlineUsers();
 });
+
+
+battleActionPlaceButton?.addEventListener('click', () => { pendingPlacementMode = 'faceup'; hideCardActionModal(); renderBattleArena(); });
+battleActionFaceDownButton?.addEventListener('click', () => { pendingPlacementMode = 'facedown'; hideCardActionModal(); renderBattleArena(); });
+battleActionCancelButton?.addEventListener('click', () => { selectedHandCardId = null; pendingPlacementMode = null; hideCardActionModal(); renderBattleArena(); });
+document.addEventListener('keydown', (event) => { if (event.key === 'Escape') { battleArenaDismissed = true; battleArenaModal.classList.add('hidden'); hideCardActionModal(); } });
