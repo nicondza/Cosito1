@@ -114,6 +114,35 @@ const characterTypeColors = Object.fromEntries(
   characterTypes.map((entry, index) => [entry.type, typeColorPalette[index]]),
 );
 
+
+const physicalTraitCatalog = [
+  { key: 'hairColor', label: 'Color de cabello', code: 'A', options: ['Morocho', 'Rubio', 'Castaño', 'Pelirrojo', 'Blanco', 'Azul', 'Verde'] },
+  { key: 'eyeColor', label: 'Color de ojos', code: 'B', options: ['Verdes', 'Celestes', 'Marrones', 'Negros', 'Grises', 'Rojos', 'Violetas'] },
+  { key: 'skinTone', label: 'Tono de piel', code: 'C', options: ['Claro', 'Medio', 'Oscuro', 'Pálido', 'Oliva', 'Azulado'] },
+  { key: 'height', label: 'Altura', code: 'D', options: ['Baja', 'Media', 'Alta', 'Gigante'] },
+  { key: 'build', label: 'Complexión', code: 'E', options: ['Delgada', 'Atlética', 'Robusta', 'Musculosa', 'Etérea'] },
+];
+
+function buildTraitTags(physicalTraits = {}) {
+  return physicalTraitCatalog
+    .map((trait) => {
+      const selectedValue = physicalTraits[trait.key];
+      const optionIndex = trait.options.indexOf(selectedValue);
+      return optionIndex >= 0 ? `${trait.code}${optionIndex + 1}` : '';
+    })
+    .filter(Boolean);
+}
+
+function buildTraitFieldMarkup(prefix, physicalTraits = {}) {
+  return physicalTraitCatalog.map((trait) => {
+    const optionsMarkup = trait.options
+      .map((option) => `<option value="${escapeHtml(option)}" ${physicalTraits[trait.key] === option ? 'selected' : ''}>${escapeHtml(option)}</option>`)
+      .join('');
+
+    return `<label>${trait.label} (${trait.code})<select name="${prefix}-${trait.key}" required><option value="">Selecciona una variante</option>${optionsMarkup}</select></label>`;
+  }).join('');
+}
+
 const storageKey = 'cronicas-personajes';
 const migrationKey = 'cronicas-personajes-firebase-migrated';
 const localCharacters = JSON.parse(localStorage.getItem(storageKey) || '[]');
@@ -184,6 +213,8 @@ function normalizeCharacter(character, fallbackId) {
     speed: character.speed || '',
     story: character.story || '',
     image: character.image || '',
+    physicalTraits: character.physicalTraits || {},
+    tags: Array.isArray(character.tags) ? character.tags : buildTraitTags(character.physicalTraits || {}),
     createdAt: character.createdAt || now,
     updatedAt: character.updatedAt || now,
   };
@@ -298,6 +329,7 @@ function renderCharacterCard(character) {
           <span>Inteligencia: ${escapeHtml(character.intelligence)}</span>
           <span>Velocidad: ${escapeHtml(character.speed)}</span>
         </span>
+        <span class="meta"><strong>Etiquetas:</strong> ${escapeHtml((character.tags || []).join(', ') || 'Sin etiquetas')}</span>
         <span class="character-card-cta">Ver perfil y editar</span>
       </span>
     </button>
@@ -644,7 +676,10 @@ function renderProfile(character) {
               <input name="speed" type="number" min="1" max="100" required value="${escapeHtml(character.speed)}">
             </label>
           </div>
-          <label>
+          <fieldset><legend>Físico (rasgo + variante numérica)</legend>${buildTraitFieldMarkup('profile-trait', character.physicalTraits || {})}</fieldset><label>
+            Etiquetas asignadas
+            <input type="text" value="${escapeHtml((character.tags || []).join(', '))}" readonly>
+          </label><label>
             Historia del personaje
             <textarea name="story" rows="8" required>${escapeHtml(character.story)}</textarea>
           </label>
@@ -716,6 +751,8 @@ function renderProfile(character) {
         speed: formData.get('speed'),
         story: formData.get('story').trim(),
         image: profileImage || formData.get('imageUrl').trim(),
+        physicalTraits: Object.fromEntries(physicalTraitCatalog.map((trait) => [trait.key, formData.get(`profile-trait-${trait.key}`)])),
+        tags: buildTraitTags(Object.fromEntries(physicalTraitCatalog.map((trait) => [trait.key, formData.get(`profile-trait-${trait.key}`)]))),
       });
       closeProfile();
     } catch (error) {
@@ -786,6 +823,8 @@ function buildRandomCharacter(nameNumber) {
   const selectedType = getRandomCharacterTypeEntry();
   const selectedClan = selectedType.clans[getRandomInt(0, selectedType.clans.length - 1)];
 
+  const physicalTraits = Object.fromEntries(physicalTraitCatalog.map((trait) => [trait.key, trait.options[getRandomInt(0, trait.options.length - 1)]]));
+
   return {
     id: crypto.randomUUID(),
     name: String(nameNumber),
@@ -797,6 +836,8 @@ function buildRandomCharacter(nameNumber) {
     speed: String(getRandomInt(1, 100)),
     story: 'Generado automáticamente',
     image: '',
+    physicalTraits,
+    tags: buildTraitTags(physicalTraits),
   };
 }
 
@@ -864,6 +905,7 @@ function createCharacterForm() {
               <input name="speed" type="number" min="1" max="100" required placeholder="1-100">
             </label>
           </div>
+          <fieldset><legend>Físico (rasgo + variante numérica)</legend>${buildTraitFieldMarkup('trait')}</fieldset>
           <label>
             Historia del personaje
             <textarea name="story" rows="5" required placeholder="Cuenta el origen, hazañas y secretos del personaje"></textarea>
@@ -945,6 +987,8 @@ function createCharacterForm() {
       speed: formData.get('speed'),
       story: formData.get('story').trim(),
       image: filePreview || formData.get('imageUrl').trim(),
+      physicalTraits: Object.fromEntries(physicalTraitCatalog.map((trait) => [trait.key, formData.get(`trait-${trait.key}`)])),
+      tags: buildTraitTags(Object.fromEntries(physicalTraitCatalog.map((trait) => [trait.key, formData.get(`trait-${trait.key}`)]))),
     };
 
     try {
