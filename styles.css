@@ -683,3 +683,59 @@ body::before {
   border-color: rgba(231, 76, 60, 0.65);
   color: #ffd3cc;
 }
+
+.auth-shell {
+  max-width: 1180px;
+  margin: 1.5rem auto 0;
+  padding: 0 1.4rem;
+}
+
+.auth-card,
+.auth-user {
+  border: 1px solid rgba(196, 152, 70, 0.45);
+  background: linear-gradient(160deg, rgba(53, 44, 33, 0.7), rgba(31, 25, 18, 0.8));
+  box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.35), 0 8px 25px rgba(0, 0, 0, 0.35);
+  border-radius: 14px;
+}
+
+.auth-card {
+  padding: 1.2rem;
+}
+
+.auth-user {
+  margin-bottom: 1.2rem;
+  padding: 0.8rem 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+}
+
+.auth-btn {
+  margin-left: auto;
+  font-family: inherit;
+  padding: 0.65rem 0.95rem;
+  border-radius: 10px;
+  border: 1px solid #f0cf89;
+  color: #261a08;
+  cursor: pointer;
+  background: linear-gradient(145deg, var(--gold-4), var(--gold-2) 45%, var(--gold-1) 100%);
+}
+
+.auth-avatar {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid rgba(240, 207, 137, 0.75);
+  background: rgba(0, 0, 0, 0.25);
+}
+
+.auth-name,
+.auth-uid {
+  margin: 0;
+}
+
+.auth-uid {
+  font-size: 0.85rem;
+  opacity: 0.85;
+}
