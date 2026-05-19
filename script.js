@@ -15,6 +15,8 @@ const auth = firebase.auth();
 const googleProvider = new firebase.auth.GoogleAuthProvider();
 const charactersRef = database.ref('characters');
 const userDecksRef = database.ref('userDecks');
+const onlineUsersRef = database.ref('onlineUsers');
+const battleChallengesRef = database.ref('battleChallenges');
 
 const buttons = document.querySelectorAll('.menu-btn');
 const panels = document.querySelectorAll('.panel');
@@ -29,6 +31,11 @@ const gameLayout = document.querySelector('#game-layout');
 const userName = document.querySelector('#user-name');
 const userUid = document.querySelector('#user-uid');
 const userPhoto = document.querySelector('#user-photo');
+const battleUsersList = document.querySelector('#battle-users-list');
+const battleChallengeModal = document.querySelector('#battle-challenge-modal');
+const challengeMessage = document.querySelector('#challenge-message');
+const acceptChallengeButton = document.querySelector('#accept-challenge-btn');
+const rejectChallengeButton = document.querySelector('#reject-challenge-btn');
 
 const characterTypes = [
   { type: 'Brujas', clans: ['Luna Carmesí', 'Hijas del Caldero', 'Las Espinas Negras', 'Coven Eclipse'] },
@@ -111,6 +118,8 @@ let currentUserId = null;
 let selectedDeckIds = [];
 let deckOrder = [];
 let savedDeck = { characterIds: [], mainIds: [] };
+let onlineUsers = {};
+let activeChallenge = null;
 
 buttons.forEach((button) => {
   button.addEventListener('click', () => {
@@ -341,6 +350,71 @@ function renderDeckBuilder() {
   if (saveDeckBtn) {
     saveDeckBtn.addEventListener('click', saveDeck);
   }
+}
+
+function renderOnlineUsers() {
+  if (!battleUsersList) return;
+
+  if (!currentUserId) {
+    battleUsersList.innerHTML = '<p>Inicia sesión para ver usuarios conectados.</p>';
+    return;
+  }
+
+  const users = Object.values(onlineUsers).filter((entry) => entry.uid !== currentUserId);
+  if (!users.length) {
+    battleUsersList.innerHTML = '<p>No hay otros usuarios conectados en este momento.</p>';
+    return;
+  }
+
+  battleUsersList.innerHTML = users
+    .map((user) => `
+      <article class="battle-user-card">
+        <p class="battle-user-name">${escapeHtml(user.name || 'Usuario sin nombre')}</p>
+        <button class="save-character-btn challenge-user-btn" type="button" data-challenge-user-id="${escapeHtml(user.uid)}" data-challenge-user-name="${escapeHtml(user.name || 'Usuario')}">
+          Retar a batalla
+        </button>
+      </article>
+    `)
+    .join('');
+}
+
+async function sendBattleChallenge(targetUserId, targetUserName) {
+  if (!currentUserId || !targetUserId || targetUserId === currentUserId) return;
+  await battleChallengesRef.child(targetUserId).set({
+    fromUid: currentUserId,
+    fromName: userName.textContent || 'Usuario sin nombre',
+    toUid: targetUserId,
+    toName: targetUserName || 'Usuario',
+    status: 'pending',
+    createdAt: getTimestamp(),
+  });
+  setSyncStatus(`Desafío enviado a ${targetUserName || 'usuario'}.`, 'success');
+}
+
+function showChallengeModal(challengeData) {
+  activeChallenge = challengeData;
+  challengeMessage.textContent = `${challengeData.fromName || 'Un usuario'} te ha retado.`;
+  battleChallengeModal.classList.remove('hidden');
+}
+
+function hideChallengeModal() {
+  activeChallenge = null;
+  battleChallengeModal.classList.add('hidden');
+}
+
+async function respondToChallenge(status) {
+  if (!currentUserId || !activeChallenge) return;
+  await battleChallengesRef.child(currentUserId).update({
+    status,
+    respondedAt: getTimestamp(),
+  });
+  hideChallengeModal();
+  setSyncStatus(
+    status === 'accepted'
+      ? `Aceptaste el reto de ${activeChallenge.fromName || 'otro usuario'}.`
+      : `Rechazaste el reto de ${activeChallenge.fromName || 'otro usuario'}.`,
+    'success',
+  );
 }
 
 async function loadDeckForUser(userId) {
@@ -802,6 +876,7 @@ function toggleAuthenticatedUi(user) {
   gameLayout.classList.toggle('hidden', !isLogged);
 
   if (!isLogged) {
+    const previousUserId = currentUserId;
     currentUserId = null;
     savedDeck = { characterIds: [], mainIds: [] };
     selectedDeckIds = [];
@@ -809,6 +884,11 @@ function toggleAuthenticatedUi(user) {
     userName.textContent = '';
     userUid.textContent = '';
     userPhoto.removeAttribute('src');
+    if (previousUserId) {
+      onlineUsersRef.child(previousUserId).remove().catch(() => {});
+    }
+    onlineUsers = {};
+    renderOnlineUsers();
     return;
   }
 
@@ -821,6 +901,19 @@ function toggleAuthenticatedUi(user) {
   } else {
     userPhoto.removeAttribute('src');
   }
+
+  const presenceRef = onlineUsersRef.child(user.uid);
+  const connectedRef = database.ref('.info/connected');
+  connectedRef.on('value', (snapshot) => {
+    if (snapshot.val() !== true) return;
+    presenceRef.onDisconnect().remove();
+    presenceRef.set({
+      uid: user.uid,
+      name: user.displayName || 'Usuario sin nombre',
+      photoURL: user.photoURL || '',
+      lastSeen: getTimestamp(),
+    });
+  });
 }
 
 loginGoogleButton.addEventListener('click', signInWithGoogle);
@@ -842,7 +935,26 @@ randomCharacterButton.addEventListener('click', createRandomCharacters);
 createCharacterForm();
 renderGallery();
 renderDeckBuilder();
+renderOnlineUsers();
 setSyncStatus('Conectando con Firebase...', 'loading');
+
+onlineUsersRef.on('value', (snapshot) => {
+  onlineUsers = snapshot.val() || {};
+  renderOnlineUsers();
+});
+
+battleChallengesRef.on('value', (snapshot) => {
+  if (!currentUserId) return;
+  const challengeData = snapshot.child(currentUserId).val();
+  if (challengeData && challengeData.status === 'pending') {
+    showChallengeModal(challengeData);
+    return;
+  }
+
+  if (!challengeData && activeChallenge) {
+    hideChallengeModal();
+  }
+});
 
 charactersRef.on(
   'value',
@@ -898,4 +1010,25 @@ document.addEventListener('click', (event) => {
   }
 
   renderDeckBuilder();
+});
+
+battleUsersList.addEventListener('click', (event) => {
+  const trigger = event.target.closest('.challenge-user-btn');
+  if (!trigger) return;
+  sendBattleChallenge(trigger.dataset.challengeUserId, trigger.dataset.challengeUserName).catch((error) => {
+    console.error('No se pudo enviar el desafío:', error);
+    setSyncStatus('No se pudo enviar el desafío de batalla.', 'error');
+  });
+});
+
+acceptChallengeButton.addEventListener('click', () => {
+  respondToChallenge('accepted').catch((error) => {
+    console.error('No se pudo aceptar el desafío:', error);
+  });
+});
+
+rejectChallengeButton.addEventListener('click', () => {
+  respondToChallenge('rejected').catch((error) => {
+    console.error('No se pudo rechazar el desafío:', error);
+  });
 });

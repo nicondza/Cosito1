@@ -54,10 +54,8 @@
 
         <section id="batallas" class="panel">
           <h2>Batallas</h2>
-          <p>
-            Revive los enfrentamientos decisivos en los valles de piedra y
-            fortalezas olvidadas, donde el acero y la estrategia marcaron el destino.
-          </p>
+          <p>Usuarios conectados para retar a batalla.</p>
+          <section id="battle-users-list" class="battle-users-list" aria-live="polite"></section>
         </section>
 
         <section id="historia" class="panel">
@@ -73,6 +71,16 @@
     <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-database-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
+    <div id="battle-challenge-modal" class="challenge-modal hidden" role="dialog" aria-modal="true" aria-labelledby="challenge-title">
+      <div class="challenge-modal-card">
+        <h3 id="challenge-title">Desafío de batalla</h3>
+        <p id="challenge-message">Un usuario te ha retado.</p>
+        <div class="challenge-actions">
+          <button id="accept-challenge-btn" class="save-character-btn" type="button">Aceptar</button>
+          <button id="reject-challenge-btn" class="cancel-character-btn" type="button">Rechazar</button>
+        </div>
+      </div>
+    </div>
     <script src="script.js"></script>
   </body>
 </html>
