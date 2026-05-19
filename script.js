@@ -11,6 +11,8 @@ const firebaseConfig = {
 
 const firebaseApp = firebase.initializeApp(firebaseConfig);
 const database = firebaseApp.database();
+const auth = firebase.auth();
+const googleProvider = new firebase.auth.GoogleAuthProvider();
 const charactersRef = database.ref('characters');
 
 const buttons = document.querySelectorAll('.menu-btn');
@@ -18,6 +20,14 @@ const panels = document.querySelectorAll('.panel');
 const personajesPanel = document.querySelector('#personajes');
 const addCharacterButton = document.querySelector('.add-character-btn');
 const randomCharacterButton = document.querySelector('.random-character-btn');
+const loginGoogleButton = document.querySelector('#login-google-btn');
+const logoutButton = document.querySelector('#logout-btn');
+const authPanel = document.querySelector('#auth-panel');
+const authUserPanel = document.querySelector('#auth-user-panel');
+const gameLayout = document.querySelector('#game-layout');
+const userName = document.querySelector('#user-name');
+const userUid = document.querySelector('#user-uid');
+const userPhoto = document.querySelector('#user-photo');
 
 const characterTypes = [
   { type: 'Brujas', clans: ['Luna Carmesí', 'Hijas del Caldero', 'Las Espinas Negras', 'Coven Eclipse'] },
@@ -672,6 +682,51 @@ function createCharacterForm() {
     }
   });
 }
+
+
+async function signInWithGoogle() {
+  try {
+    await auth.signInWithPopup(googleProvider);
+  } catch (error) {
+    console.error('Error al iniciar sesión con Google:', error);
+  }
+}
+
+async function logout() {
+  try {
+    await auth.signOut();
+  } catch (error) {
+    console.error('Error al cerrar sesión:', error);
+  }
+}
+
+function toggleAuthenticatedUi(user) {
+  const isLogged = Boolean(user);
+  authPanel.classList.toggle('hidden', isLogged);
+  authUserPanel.classList.toggle('hidden', !isLogged);
+  gameLayout.classList.toggle('hidden', !isLogged);
+
+  if (!isLogged) {
+    userName.textContent = '';
+    userUid.textContent = '';
+    userPhoto.removeAttribute('src');
+    return;
+  }
+
+  userName.textContent = user.displayName || 'Usuario sin nombre';
+  userUid.textContent = `UID: ${user.uid}`;
+  if (user.photoURL) {
+    userPhoto.src = user.photoURL;
+  } else {
+    userPhoto.removeAttribute('src');
+  }
+}
+
+loginGoogleButton.addEventListener('click', signInWithGoogle);
+logoutButton.addEventListener('click', logout);
+auth.onAuthStateChanged((user) => {
+  toggleAuthenticatedUi(user);
+});
 
 addCharacterButton.textContent = 'Crear personaje';
 addCharacterButton.addEventListener('click', openForm);
