@@ -903,3 +903,48 @@ body::before {
 .battle-slot.occupied {
   border-style: solid;
 }
+
+.battle-arena-card {
+  width: 100vw;
+  height: 100vh;
+  max-height: 100vh;
+  border-radius: 0;
+  padding: 1rem 1.2rem;
+}
+
+.battle-board {
+  display: grid;
+  gap: 1rem;
+}
+
+.battle-slot {
+  min-height: 260px;
+  padding: 0;
+}
+
+.battle-mini-card {
+  display: grid;
+  grid-template-rows: auto 1fr auto auto;
+  width: 100%;
+  height: 100%;
+  border-radius: 10px;
+  overflow: hidden;
+  background: linear-gradient(160deg, var(--type-color-dark), var(--type-color) 50%, var(--type-color-light));
+  color: #fff8df;
+}
+
+.battle-mini-name { padding: 0.4rem; font-weight: 700; text-align: center; background: rgba(0,0,0,.4);} 
+.battle-mini-image { width: 100%; height: 150px; object-fit: cover; }
+.battle-mini-meta, .battle-mini-stats { font-size: .78rem; padding: .25rem .35rem; background: rgba(0,0,0,.35);} 
+.battle-facedown-plate {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  width: 100%;
+  border-radius: 10px;
+  background: linear-gradient(145deg,#cfd3da,#9aa1ad 45%,#6c7480);
+  color: #2f3540;
+  font-size: 2rem;
+}
+
+.battle-slot-empty { opacity: .8; }
