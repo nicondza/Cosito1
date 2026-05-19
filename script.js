@@ -17,6 +17,7 @@ const charactersRef = database.ref('characters');
 const userDecksRef = database.ref('userDecks');
 const onlineUsersRef = database.ref('onlineUsers');
 const battleChallengesRef = database.ref('battleChallenges');
+const battleSessionsRef = database.ref('battleSessions');
 
 const buttons = document.querySelectorAll('.menu-btn');
 const panels = document.querySelectorAll('.panel');
@@ -36,6 +37,11 @@ const battleChallengeModal = document.querySelector('#battle-challenge-modal');
 const challengeMessage = document.querySelector('#challenge-message');
 const acceptChallengeButton = document.querySelector('#accept-challenge-btn');
 const rejectChallengeButton = document.querySelector('#reject-challenge-btn');
+const battleArenaModal = document.querySelector('#battle-arena-modal');
+const battleTurnLabel = document.querySelector('#battle-turn-label');
+const battleHand = document.querySelector('#battle-hand');
+const battleOpponentSlots = document.querySelector('#battle-opponent-slots');
+const battlePlayerSlots = document.querySelector('#battle-player-slots');
 
 const characterTypes = [
   { type: 'Brujas', clans: ['Luna Carmesí', 'Hijas del Caldero', 'Las Espinas Negras', 'Coven Eclipse'] },
@@ -120,6 +126,8 @@ let deckOrder = [];
 let savedDeck = { characterIds: [], mainIds: [] };
 let onlineUsers = {};
 let activeChallenge = null;
+let activeBattleSession = null;
+let selectedHandCardId = null;
 
 buttons.forEach((button) => {
   button.addEventListener('click', () => {
@@ -404,8 +412,13 @@ function hideChallengeModal() {
 
 async function respondToChallenge(status) {
   if (!currentUserId || !activeChallenge) return;
+  let battleId = '';
+  if (status === 'accepted') {
+    battleId = await createBattleSessionForChallenge(activeChallenge);
+  }
   await battleChallengesRef.child(currentUserId).update({
     status,
+    battleId,
     respondedAt: getTimestamp(),
   });
   hideChallengeModal();
@@ -454,6 +467,88 @@ async function toggleMainCharacter(characterId) {
     : [...savedDeck.mainIds, characterId];
   await userDecksRef.child(currentUserId).set(savedDeck);
   renderDeckBuilder();
+}
+
+function shuffleList(values) {
+  const list = [...values];
+  for (let index = list.length - 1; index > 0; index -= 1) {
+    const randomIndex = Math.floor(Math.random() * (index + 1));
+    [list[index], list[randomIndex]] = [list[randomIndex], list[index]];
+  }
+  return list;
+}
+
+function getBattlePlayers(session) {
+  return session.players || [];
+}
+
+function getPlayerState(session, uid) {
+  return (session.playerStates || {})[uid] || { hand: [], deck: [] };
+}
+
+function renderBattleArena() {
+  if (!activeBattleSession || !currentUserId) return;
+  const session = activeBattleSession;
+  const currentTurnUid = session.currentTurnUid;
+  const myTurn = currentTurnUid === currentUserId;
+  const players = getBattlePlayers(session);
+  const opponentUid = players.find((uid) => uid !== currentUserId);
+  const myState = getPlayerState(session, currentUserId);
+
+  battleTurnLabel.textContent = myTurn ? 'Es tu turno.' : 'Turno del contrincante.';
+  battleHand.innerHTML = myState.hand.map((cardId) => {
+    const card = characters.find((entry) => entry.id === cardId);
+    const selectedClass = selectedHandCardId === cardId ? 'is-picked' : '';
+    return `<button class="character-card deck-card battle-hand-card ${selectedClass}" type="button" data-battle-hand-id="${escapeHtml(cardId)}">
+      <span class="character-card-header">${escapeHtml(card?.name || 'Carta')}</span>
+      <span class="character-card-footer"><span class="meta">${escapeHtml(card?.type || '')}</span></span>
+    </button>`;
+  }).join('') || '<p>No tienes cartas en mano.</p>';
+
+  const renderSlots = (ownerUid, slotsContainer, isPlayer) => {
+    const slots = session.fieldSlots || [];
+    slotsContainer.innerHTML = slots.filter((slot) => slot.ownerUid === ownerUid).map((slot) => {
+      const card = slot.cardId ? characters.find((entry) => entry.id === slot.cardId) : null;
+      const hiddenForOpponent = slot.faceDown && !isPlayer;
+      const label = hiddenForOpponent ? 'Carta boca abajo' : (card?.name || 'Vacío');
+      return `<button class="battle-slot ${slot.cardId ? 'occupied' : ''}" data-battle-slot-id="${slot.id}" ${!isPlayer || slot.cardId ? 'disabled' : ''}>${escapeHtml(label)}</button>`;
+    }).join('');
+  };
+
+  renderSlots(opponentUid, battleOpponentSlots, false);
+  renderSlots(currentUserId, battlePlayerSlots, true);
+  battleArenaModal.classList.remove('hidden');
+}
+
+async function createBattleSessionForChallenge(challengeData) {
+  const accepterDeck = [...savedDeck.characterIds];
+  if (accepterDeck.length !== 20) throw new Error('Debes tener mazo de 20 cartas para aceptar.');
+  const challengerDeckSnapshot = await userDecksRef.child(challengeData.fromUid).once('value');
+  const challengerDeck = (challengerDeckSnapshot.val()?.characterIds) || [];
+  if (challengerDeck.length !== 20) throw new Error('El contrincante no tiene mazo válido.');
+
+  const id = battleSessionsRef.push().key;
+  const challengerShuffled = shuffleList(challengerDeck);
+  const accepterShuffled = shuffleList(accepterDeck);
+  const players = [challengeData.fromUid, challengeData.toUid];
+  const fieldSlots = [
+    ...Array.from({ length: 5 }, (_, i) => ({ id: `opponent-${i + 1}`, ownerUid: challengeData.fromUid, cardId: '', faceDown: false })),
+    ...Array.from({ length: 5 }, (_, i) => ({ id: `player-${i + 1}`, ownerUid: challengeData.toUid, cardId: '', faceDown: false })),
+  ];
+
+  await battleSessionsRef.child(id).set({
+    id,
+    status: 'active',
+    players,
+    currentTurnUid: challengeData.fromUid,
+    fieldSlots,
+    playerStates: {
+      [challengeData.fromUid]: { hand: challengerShuffled.slice(0, 3), deck: challengerShuffled.slice(3) },
+      [challengeData.toUid]: { hand: accepterShuffled.slice(0, 3), deck: accepterShuffled.slice(3) },
+    },
+    createdAt: getTimestamp(),
+  });
+  return id;
 }
 
 function closeProfile() {
@@ -1021,6 +1116,44 @@ battleUsersList.addEventListener('click', (event) => {
   });
 });
 
+
+document.addEventListener('click', (event) => {
+  const handCard = event.target.closest('[data-battle-hand-id]');
+  if (handCard) {
+    selectedHandCardId = handCard.dataset.battleHandId;
+    renderBattleArena();
+    return;
+  }
+
+  const targetSlot = event.target.closest('[data-battle-slot-id]');
+  if (!targetSlot || !activeBattleSession || !selectedHandCardId || !currentUserId) return;
+  if (activeBattleSession.currentTurnUid !== currentUserId) return;
+
+  const faceDown = window.confirm('¿Quieres colocarla boca abajo?');
+  const slotId = targetSlot.dataset.battleSlotId;
+  const session = activeBattleSession;
+  const myState = getPlayerState(session, currentUserId);
+  if (!myState.hand.includes(selectedHandCardId)) return;
+
+  const fieldSlots = (session.fieldSlots || []).map((slot) => (slot.id === slotId ? { ...slot, cardId: selectedHandCardId, faceDown } : slot));
+  const updatedHand = myState.hand.filter((id) => id !== selectedHandCardId);
+  const updatedDeck = [...myState.deck];
+  if (updatedDeck.length) {
+    updatedHand.push(updatedDeck.shift());
+  }
+  const opponentUid = session.players.find((uid) => uid !== currentUserId);
+
+  battleSessionsRef.child(session.id).update({
+    fieldSlots,
+    currentTurnUid: opponentUid,
+    [`playerStates/${currentUserId}/hand`]: updatedHand,
+    [`playerStates/${currentUserId}/deck`]: updatedDeck,
+    updatedAt: getTimestamp(),
+  });
+  selectedHandCardId = null;
+}
+);
+
 acceptChallengeButton.addEventListener('click', () => {
   respondToChallenge('accepted').catch((error) => {
     console.error('No se pudo aceptar el desafío:', error);
@@ -1031,4 +1164,18 @@ rejectChallengeButton.addEventListener('click', () => {
   respondToChallenge('rejected').catch((error) => {
     console.error('No se pudo rechazar el desafío:', error);
   });
+});
+
+
+battleSessionsRef.on('value', (snapshot) => {
+  if (!currentUserId) return;
+  const sessions = snapshot.val() || {};
+  const current = Object.values(sessions).find((session) => (session.players || []).includes(currentUserId) && session.status === 'active');
+  if (!current) {
+    activeBattleSession = null;
+    battleArenaModal.classList.add('hidden');
+    return;
+  }
+  activeBattleSession = current;
+  renderBattleArena();
 });
