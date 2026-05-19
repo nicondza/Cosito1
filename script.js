@@ -14,6 +14,7 @@ const database = firebaseApp.database();
 const auth = firebase.auth();
 const googleProvider = new firebase.auth.GoogleAuthProvider();
 const charactersRef = database.ref('characters');
+const userDecksRef = database.ref('userDecks');
 
 const buttons = document.querySelectorAll('.menu-btn');
 const panels = document.querySelectorAll('.panel');
@@ -106,6 +107,10 @@ let characters = [];
 let filePreview = '';
 let activeProfileId = null;
 let hasReceivedFirebaseData = false;
+let currentUserId = null;
+let selectedDeckIds = [];
+let deckOrder = [];
+let savedDeck = { characterIds: [], mainIds: [] };
 
 buttons.forEach((button) => {
   button.addEventListener('click', () => {
@@ -285,6 +290,96 @@ function renderGallery() {
   gallery.innerHTML = characters.length
     ? characters.map(renderCharacterCard).join('')
     : '<p class="empty-gallery">Todavía no hay personajes guardados.</p>';
+}
+
+function renderDeckBuilder() {
+  const container = document.querySelector('#deck-builder');
+  if (!container) return;
+
+  if (!currentUserId) {
+    container.innerHTML = '<p>Inicia sesión para gestionar tu mazo.</p>';
+    return;
+  }
+
+  const hasSavedDeck = savedDeck.characterIds.length === 20;
+  const availableCharacters = hasSavedDeck
+    ? characters.filter((character) => savedDeck.characterIds.includes(character.id))
+    : characters;
+  const selectedSet = new Set(selectedDeckIds);
+  const orderMap = new Map(deckOrder.map((id, index) => [id, index + 1]));
+  const mainSet = new Set(savedDeck.mainIds);
+
+  container.innerHTML = `
+    <p class="deck-description">
+      ${hasSavedDeck
+        ? 'Tu mazo principal está guardado. Elige 3 personajes principales.'
+        : 'Selecciona 20 personajes para tu mazo principal.'}
+    </p>
+    <div class="deck-count">${hasSavedDeck ? `Mazo guardado: ${savedDeck.characterIds.length}/20` : `Seleccionados: ${selectedDeckIds.length}/20`}</div>
+    ${(!hasSavedDeck && selectedDeckIds.length === 20) ? '<button id="save-deck-btn" class="save-character-btn" type="button">Guardar Mazo</button>' : ''}
+    <section class="deck-grid">
+      ${availableCharacters.map((character) => {
+    const isSelected = selectedSet.has(character.id);
+    const order = orderMap.get(character.id);
+    const isMain = mainSet.has(character.id);
+    return `
+          <button class="character-card deck-card ${isSelected ? 'is-picked' : ''} ${isMain ? 'is-main' : ''}" type="button" data-deck-character-id="${escapeHtml(character.id)}" style="${getTypeColorStyles(character.type)}">
+            ${order ? `<span class="pick-order">${order}</span>` : ''}
+            ${isMain ? '<span class="main-badge">Principal</span>' : ''}
+            <span class="character-card-header">${escapeHtml(character.name)}</span>
+            <span class="character-card-footer">
+              <span class="meta"><strong>Tipo:</strong> <span class="character-type-pill">${escapeHtml(character.type)}</span></span>
+              <span class="meta"><strong>Clan:</strong> ${escapeHtml(character.clan)}</span>
+            </span>
+          </button>
+        `;
+  }).join('')}
+    </section>
+  `;
+
+  const saveDeckBtn = document.querySelector('#save-deck-btn');
+  if (saveDeckBtn) {
+    saveDeckBtn.addEventListener('click', saveDeck);
+  }
+}
+
+async function loadDeckForUser(userId) {
+  const snapshot = await userDecksRef.child(userId).once('value');
+  const data = snapshot.val();
+  if (!data) {
+    savedDeck = { characterIds: [], mainIds: [] };
+    selectedDeckIds = [];
+    deckOrder = [];
+    renderDeckBuilder();
+    return;
+  }
+
+  savedDeck = {
+    characterIds: Array.isArray(data.characterIds) ? data.characterIds : [],
+    mainIds: Array.isArray(data.mainIds) ? data.mainIds : [],
+  };
+  selectedDeckIds = [...savedDeck.characterIds];
+  deckOrder = [...savedDeck.characterIds];
+  renderDeckBuilder();
+}
+
+async function saveDeck() {
+  savedDeck = { characterIds: [...selectedDeckIds], mainIds: [] };
+  await userDecksRef.child(currentUserId).set(savedDeck);
+  setSyncStatus('Mazo guardado correctamente.', 'success');
+  renderDeckBuilder();
+}
+
+async function toggleMainCharacter(characterId) {
+  if (!savedDeck.characterIds.includes(characterId)) return;
+  const alreadyMain = savedDeck.mainIds.includes(characterId);
+  if (!alreadyMain && savedDeck.mainIds.length >= 3) return;
+
+  savedDeck.mainIds = alreadyMain
+    ? savedDeck.mainIds.filter((id) => id !== characterId)
+    : [...savedDeck.mainIds, characterId];
+  await userDecksRef.child(currentUserId).set(savedDeck);
+  renderDeckBuilder();
 }
 
 function closeProfile() {
@@ -707,11 +802,17 @@ function toggleAuthenticatedUi(user) {
   gameLayout.classList.toggle('hidden', !isLogged);
 
   if (!isLogged) {
+    currentUserId = null;
+    savedDeck = { characterIds: [], mainIds: [] };
+    selectedDeckIds = [];
+    deckOrder = [];
     userName.textContent = '';
     userUid.textContent = '';
     userPhoto.removeAttribute('src');
     return;
   }
+
+  currentUserId = user.uid;
 
   userName.textContent = user.displayName || 'Usuario sin nombre';
   userUid.textContent = `UID: ${user.uid}`;
@@ -726,6 +827,13 @@ loginGoogleButton.addEventListener('click', signInWithGoogle);
 logoutButton.addEventListener('click', logout);
 auth.onAuthStateChanged((user) => {
   toggleAuthenticatedUi(user);
+  if (user) {
+    loadDeckForUser(user.uid).catch((error) => {
+      console.error('No se pudo cargar el mazo del usuario:', error);
+    });
+  } else {
+    renderDeckBuilder();
+  }
 });
 
 addCharacterButton.textContent = 'Crear personaje';
@@ -733,6 +841,7 @@ addCharacterButton.addEventListener('click', openForm);
 randomCharacterButton.addEventListener('click', createRandomCharacters);
 createCharacterForm();
 renderGallery();
+renderDeckBuilder();
 setSyncStatus('Conectando con Firebase...', 'loading');
 
 charactersRef.on(
@@ -745,6 +854,7 @@ charactersRef.on(
 
     hasReceivedFirebaseData = true;
     renderGallery();
+    renderDeckBuilder();
     setSyncStatus('Personajes sincronizados con Firebase y visibles en otros dispositivos.', 'success');
 
     try {
@@ -761,6 +871,31 @@ charactersRef.on(
     if (!hasReceivedFirebaseData && localCharacters.length) {
       characters = localCharacters.map((character) => normalizeCharacter(character));
       renderGallery();
+      renderDeckBuilder();
     }
   },
 );
+
+document.addEventListener('click', (event) => {
+  const deckCard = event.target.closest('.deck-card');
+  if (!deckCard) return;
+  const characterId = deckCard.dataset.deckCharacterId;
+  if (!characterId) return;
+
+  if (savedDeck.characterIds.length === 20) {
+    toggleMainCharacter(characterId).catch((error) => {
+      console.error('No se pudo actualizar los personajes principales:', error);
+    });
+    return;
+  }
+
+  if (selectedDeckIds.includes(characterId)) {
+    selectedDeckIds = selectedDeckIds.filter((id) => id !== characterId);
+    deckOrder = deckOrder.filter((id) => id !== characterId);
+  } else if (selectedDeckIds.length < 20) {
+    selectedDeckIds.push(characterId);
+    deckOrder.push(characterId);
+  }
+
+  renderDeckBuilder();
+});
