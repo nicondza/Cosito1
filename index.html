@@ -199,6 +199,12 @@
                             <span class="block text-xs text-gray-400 uppercase">Nivel</span>
                             <span id="modal-level" class="text-2xl font-bold text-primary"></span>
                         </div>
+                        <div class="mt-4 bg-gray-900/70 rounded-lg border border-gray-700 p-4">
+                            <h4 class="text-xs font-bold uppercase tracking-[0.2em] text-white mb-3">Atributos principales</h4>
+                            <div id="modal-stats" class="grid grid-cols-1 gap-3">
+                                <!-- Injected stats -->
+                            </div>
+                        </div>
                     </div>
                     <div class="w-full md:w-2/3 space-y-4">
                         <div class="bg-dark rounded-lg border border-gray-700 p-4 shadow-inner">
@@ -222,13 +228,6 @@
                             <!-- Injected dynamically -->
                         </div>
 
-                        <div class="bg-gray-900/70 rounded-lg border border-gray-700 p-4">
-                            <h4 class="text-xs font-bold uppercase tracking-[0.2em] text-white mb-3">Atributos principales</h4>
-                            <div id="modal-stats" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                <!-- Injected stats -->
-                            </div>
-                        </div>
-                        
                         <div class="bg-yellow-950/20 rounded-lg border border-yellow-700/40 p-4">
                             <h4 class="text-xs font-bold uppercase tracking-[0.2em] text-yellow-300 mb-3">Hitos de evolución</h4>
                             <div id="modal-milestone-cards" class="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-80 overflow-y-auto pr-2 text-gray-300">
@@ -346,6 +345,11 @@
             if (saved) state = JSON.parse(saved);
             state.characters.forEach(char => {
                 char.pendingMilestones = char.pendingMilestones || 0;
+                char.story = cleanHandwrittenStory(char.story);
+                char.milestones = (char.milestones || []).map(milestone => {
+                    const normalized = normalizeMilestone(milestone);
+                    return isAutomaticSocietyMilestone(milestone) ? { ...normalized, auto: true } : normalized;
+                });
                 if (char.pendingAction === 'milestone') {
                     char.pendingMilestones = Math.max(char.pendingMilestones, 1);
                     char.pendingAction = null;
@@ -392,9 +396,34 @@
             const safeSrc = escapeAttr(src || '');
             const safeClasses = escapeAttr(classes);
             const idAttr = id ? ` id="${escapeAttr(id)}"` : '';
+            const fallbackAttrs = `data-fallback-alt="Silueta de ${safeAlt}" data-fallback-class="${safeClasses}"`;
             const silhouette = `<div${idAttr} role="img" aria-label="Silueta de ${safeAlt}" class="${safeClasses} silhouette flex items-end justify-center text-gray-500 text-xs pb-3">Sin imagen</div>`;
             if (!safeSrc) return silhouette;
-            return `<img${idAttr} src="${safeSrc}" alt="${safeAlt}" class="${safeClasses}" onerror="this.outerHTML=\`${silhouette}\`">`;
+            return `<img${idAttr} src="${safeSrc}" alt="${safeAlt}" class="${safeClasses}" ${fallbackAttrs} onerror="replaceBrokenImage(this)">`;
+        }
+
+        function replaceBrokenImage(img) {
+            const fallback = document.createElement('div');
+            if (img.id) fallback.id = img.id;
+            fallback.setAttribute('role', 'img');
+            fallback.setAttribute('aria-label', img.dataset.fallbackAlt || 'Silueta de personaje sin imagen');
+            fallback.className = `${img.dataset.fallbackClass || ''} silhouette flex items-end justify-center text-gray-500 text-xs pb-3`;
+            fallback.textContent = 'Sin imagen';
+            img.replaceWith(fallback);
+        }
+
+        function isAutomaticSocietyMilestone(milestone) {
+            const normalized = normalizeMilestone(milestone);
+            const autoTypes = ['Compañero', 'Rival', 'Venganza / Traición', 'Traición', 'Venganza'];
+            return Boolean(milestone && milestone.auto) || autoTypes.includes(normalized.type);
+        }
+
+        function cleanHandwrittenStory(story) {
+            return String(story || '')
+                .split('\n')
+                .filter(line => !/^\s*\[?Hito Autom[aá]tico\s*[-–:]/i.test(line.trim()))
+                .join('\n')
+                .trim();
         }
 
         function normalizeMilestone(milestone) {
@@ -505,7 +534,7 @@
             const modalImageFrame = document.getElementById('modal-img');
             modalImageFrame.outerHTML = getImageHtml(char.image, char.name, 'w-full h-64 object-cover rounded-lg border border-gray-700 shadow-md', 'modal-img');
             document.getElementById('modal-level').innerText = char.level;
-            document.getElementById('modal-story').innerText = char.story;
+            document.getElementById('modal-story').innerText = cleanHandwrittenStory(char.story);
             document.getElementById('modal-battles').innerText = char.battles;
             document.getElementById('modal-pos').innerText = `+${char.points.pos}`;
             document.getElementById('modal-neg').innerText = `-${char.points.neg}`;
@@ -592,7 +621,7 @@
 
         function renderModalMilestones(char) {
             const container = document.getElementById('modal-milestone-cards');
-            const milestones = (char.milestones || []).map(normalizeMilestone);
+            const milestones = (char.milestones || []).filter(m => !isAutomaticSocietyMilestone(m)).map(normalizeMilestone);
             if (milestones.length === 0) {
                 container.innerHTML = '<div class="text-gray-500 italic text-xs col-span-full">Sin hitos registrados.</div>';
                 return;
@@ -611,8 +640,7 @@
 
         function renderSocieties(char) {
             const container = document.getElementById('modal-societies');
-            const socialTypes = ['Compañero', 'Rival', 'Venganza / Traición', 'Traición', 'Venganza', 'Clan / Facción', 'Deuda / Obligación'];
-            const socialMilestones = (char.milestones || []).map(normalizeMilestone).filter(m => socialTypes.includes(m.type));
+            const socialMilestones = (char.milestones || []).filter(isAutomaticSocietyMilestone).map(normalizeMilestone);
             if (socialMilestones.length === 0) {
                 container.innerHTML = '<p class="text-gray-500 italic text-xs">Sin sociedades registradas todavía.</p>';
                 return;
@@ -967,7 +995,7 @@
         }
 
         function addAutoMilestone(char, type, note) {
-            char.milestones.push({ type, name: note, description: note, image: '' });
+            char.milestones.push({ type, name: note, description: note, image: '', auto: true });
         }
 
         function removeMilestone(char, type, relatedName) {
