@@ -1,122 +1,794 @@
-<!doctype html>
-<html lang="es">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Crónicas del Reino</title>
-    <link rel="stylesheet" href="styles.css" />
-  </head>
-  <body>
-    <section class="auth-shell" aria-live="polite">
-      <div class="auth-card" id="auth-panel">
-        <h2>Inicia sesión</h2>
-        <p>Debes iniciar sesión con Google para acceder al juego.</p>
-        <button id="login-google-btn" class="auth-btn" type="button">Login con Google</button>
-      </div>
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RPG Card Battler</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        dark: '#121212',
+                        darker: '#0a0a0a',
+                        card: '#1e1e1e',
+                        primary: '#6366f1',
+                        danger: '#ef4444',
+                        success: '#10b981'
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+        
+        body { font-family: 'Inter', sans-serif; background-color: var(--tw-colors-darker); color: #e5e5e5; }
+        
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #1a1a1a; }
+        ::-webkit-scrollbar-thumb { background: #4a4a4a; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #6366f1; }
 
-      <div class="auth-user hidden" id="auth-user-panel">
-        <img id="user-photo" class="auth-avatar" alt="Foto de perfil" />
+        /* Card Flip Utilities */
+        .perspective-1000 { perspective: 1000px; }
+        .transform-style-3d { transform-style: preserve-3d; }
+        .backface-hidden { backface-visibility: hidden; }
+        .rotate-y-180 { transform: rotateY(180deg); }
+        .transition-transform-duration { transition: transform 0.6s cubic-bezier(0.4, 0.2, 0.2, 1); }
+        
+        .card-container { width: 100%; height: 320px; cursor: pointer; }
+        .card-flipper { position: relative; width: 100%; height: 100%; }
+        .card-front, .card-back {
+            position: absolute; width: 100%; height: 100%; border-radius: 0.75rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
+        }
+        .card-back { background-image: repeating-linear-gradient(45deg, #1f2937 25%, transparent 25%, transparent 75%, #1f2937 75%, #1f2937), repeating-linear-gradient(45deg, #1f2937 25%, #111827 25%, #111827 75%, #1f2937 75%, #1f2937); background-position: 0 0, 10px 10px; background-size: 20px 20px; border: 2px solid #374151; display: flex; align-items: center; justify-content: center; font-size: 2rem; }
+        
+        .flipped .card-flipper { transform: rotateY(180deg); }
+        .card-front { transform: rotateY(180deg); } /* Front is initially rotated so Back shows first in battle */
+        .card-back { transform: rotateY(0deg); }
+
+        /* General Character Card UI */
+        .char-card { transition: all 0.2s ease; }
+        .char-card:hover { transform: translateY(-5px); box-shadow: 0 10px 15px -3px rgba(99, 102, 241, 0.2); border-color: #6366f1; }
+        
+        .modal-overlay { background: rgba(0,0,0,0.8); backdrop-filter: blur(4px); }
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body class="bg-darker min-h-screen text-gray-200">
+
+    <nav class="bg-card border-b border-gray-800 sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex-shrink-0 flex items-center gap-2">
+                    <span class="text-2xl">⚔️</span>
+                    <span class="font-bold text-xl tracking-wider bg-clip-text text-transparent bg-gradient-to-r from-primary to-purple-500">NEXUS RPG</span>
+                </div>
+                <div class="flex space-x-4">
+                    <button id="nav-management" class="text-white bg-gray-800 hover:bg-gray-700 px-3 py-2 rounded-md text-sm font-medium transition" onclick="switchTab('management')">Gestión de Personajes</button>
+                    <button id="nav-battle" class="text-gray-300 hover:bg-gray-700 px-3 py-2 rounded-md text-sm font-medium transition" onclick="switchTab('battle')">Zona de Batalla</button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main id="section-management" class="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+        
+        <!-- Create Character Form -->
+        <div class="bg-card rounded-xl p-6 shadow-lg border border-gray-800 mb-10">
+            <h2 class="text-xl font-bold mb-4 border-b border-gray-700 pb-2">Reclutar Nuevo Personaje</h2>
+            <form id="create-char-form" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-400 mb-1">Nombre</label>
+                        <input type="text" id="char-name" required class="w-full bg-dark border border-gray-700 rounded-lg p-2 text-white focus:outline-none focus:border-primary">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-400 mb-1">URL de Imagen</label>
+                        <input type="url" id="char-image" required placeholder="https://..." class="w-full bg-dark border border-gray-700 rounded-lg p-2 text-white focus:outline-none focus:border-primary">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-400 mb-1">Historia</label>
+                        <textarea id="char-story" required rows="3" class="w-full bg-dark border border-gray-700 rounded-lg p-2 text-white focus:outline-none focus:border-primary"></textarea>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-400 mb-2">Atributos Base (1 - 100)</label>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs text-blue-400 mb-1">Inteligencia</label>
+                            <input type="number" id="char-int" required min="1" max="100" value="50" class="w-full bg-dark border border-gray-700 rounded-lg p-2 text-white focus:outline-none focus:border-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-red-400 mb-1">Fuerza</label>
+                            <input type="number" id="char-str" required min="1" max="100" value="50" class="w-full bg-dark border border-gray-700 rounded-lg p-2 text-white focus:outline-none focus:border-red-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-yellow-400 mb-1">Velocidad</label>
+                            <input type="number" id="char-spd" required min="1" max="100" value="50" class="w-full bg-dark border border-gray-700 rounded-lg p-2 text-white focus:outline-none focus:border-yellow-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-purple-400 mb-1">Magia</label>
+                            <input type="number" id="char-mag" required min="1" max="100" value="50" class="w-full bg-dark border border-gray-700 rounded-lg p-2 text-white focus:outline-none focus:border-purple-500">
+                        </div>
+                    </div>
+                    <button type="submit" class="mt-6 w-full bg-primary hover:bg-indigo-600 text-white font-bold py-3 px-4 rounded-lg transition shadow-lg shadow-indigo-500/30">Crear Personaje</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Gallery -->
         <div>
-          <p id="user-name" class="auth-name"></p>
-          <p id="user-uid" class="auth-uid"></p>
+            <h2 class="text-2xl font-bold mb-6">Mazo de Personajes <span id="char-count" class="text-sm font-normal text-gray-400 bg-gray-800 py-1 px-2 rounded ml-2">0</span></h2>
+            <div id="char-gallery" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                <!-- Dynamically populated -->
+            </div>
         </div>
-        <button id="logout-btn" class="auth-btn" type="button">Logout</button>
-      </div>
-    </section>
+    </main>
 
-    <div class="layout hidden" id="game-layout">
-      <aside class="sidebar" aria-label="Menú principal">
-        <h1 class="logo">Crónicas del Reino</h1>
-        <nav class="menu">
-          <button class="menu-btn active" data-target="personajes">Personajes</button>
-          <button class="menu-btn" data-target="mazo">Mazo</button>
-          <button class="menu-btn" data-target="batallas">Batallas</button>
-          <button class="menu-btn" data-target="historia">Historia</button>
-        </nav>
-      </aside>
+    <main id="section-battle" class="hidden max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+        <div class="flex flex-col items-center mb-8">
+            <h2 class="text-3xl font-bold text-white mb-2">Arena de Combate</h2>
+            <p class="text-gray-400 mb-6 text-center">Se requieren al menos 8 personajes. Emparejamiento aleatorio por rotación obligatoria.</p>
+            <button id="btn-start-battle" onclick="startBattle()" class="bg-red-600 hover:bg-red-500 text-white font-bold py-3 px-8 rounded-full text-lg transition shadow-[0_0_15px_rgba(220,38,38,0.5)] transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed">
+                Iniciar Batalla 4v4
+            </button>
+        </div>
 
-      <main class="content" aria-live="polite">
-        <section id="personajes" class="panel active">
-          <div class="character-actions">
-            <button class="add-character-btn" type="button">Agregar personaje</button>
-            <label class="random-character-controls">
-              Cantidad (1-20)
-              <input id="random-character-quantity" type="number" min="1" max="20" value="1">
-            </label>
-            <button class="random-character-btn" type="button">Crear Aleatoriamente</button>
-          </div>
-        </section>
+        <div id="battle-arena" class="hidden flex flex-col gap-8">
+            <!-- Esquina Roja -->
+            <div class="bg-red-950/30 border border-red-900/50 rounded-xl p-6">
+                <h3 class="text-xl font-bold text-red-500 mb-4 text-center">Esquina Roja</h3>
+                <div id="red-corner" class="grid grid-cols-2 md:grid-cols-4 gap-4"></div>
+            </div>
+            
+            <!-- VS and Status -->
+            <div class="flex justify-center items-center flex-col gap-2">
+                <div class="w-16 h-16 rounded-full bg-gray-800 flex items-center justify-center font-bold text-2xl border-2 border-gray-600 shadow-xl z-10">VS</div>
+                <div id="battle-log" class="w-full max-w-2xl bg-black/50 p-4 rounded-lg border border-gray-800 text-center text-sm space-y-2 h-32 overflow-y-auto">
+                    <!-- Logs -->
+                </div>
+            </div>
 
-        <section id="mazo" class="panel">
-          <h2>Mazo</h2>
-          <div id="deck-builder"></div>
-        </section>
+            <!-- Esquina Azul -->
+            <div class="bg-blue-950/30 border border-blue-900/50 rounded-xl p-6">
+                <h3 class="text-xl font-bold text-blue-500 mb-4 text-center">Esquina Azul</h3>
+                <div id="blue-corner" class="grid grid-cols-2 md:grid-cols-4 gap-4"></div>
+            </div>
+            
+            <!-- Resolution Actions -->
+            <div id="battle-actions" class="hidden flex justify-center mt-4">
+                <button onclick="finishBattle()" class="bg-gray-700 hover:bg-gray-600 px-6 py-2 rounded-lg font-bold">Finalizar y Guardar Resultados</button>
+            </div>
+        </div>
+    </main>
 
-        <section id="batallas" class="panel">
-          <h2>Batallas</h2>
-          <p>Usuarios conectados para retar a batalla.</p>
-          <section id="battle-users-list" class="battle-users-list" aria-live="polite"></section>
-        </section>
+    <!-- Character Detail / Action Modal -->
+    <div id="char-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 modal-overlay">
+        <div class="bg-card w-full max-w-3xl rounded-xl shadow-2xl border border-gray-700 overflow-hidden flex flex-col max-h-[90vh]">
+            <div class="flex justify-between items-center p-4 border-b border-gray-800 bg-gray-900">
+                <h3 id="modal-name" class="text-xl font-bold"></h3>
+                <button onclick="closeModal()" class="text-gray-400 hover:text-white">&times;</button>
+            </div>
+            <div class="flex-1 overflow-y-auto p-6">
+                <div class="flex flex-col md:flex-row gap-6">
+                    <div class="w-full md:w-1/3">
+                        <img id="modal-img" src="" alt="Avatar" class="w-full h-64 object-cover rounded-lg border border-gray-700 shadow-md">
+                        <div class="mt-4 bg-gray-800 rounded p-3 text-center">
+                            <span class="block text-xs text-gray-400 uppercase">Nivel</span>
+                            <span id="modal-level" class="text-2xl font-bold text-primary"></span>
+                        </div>
+                    </div>
+                    <div class="w-full md:w-2/3 space-y-4">
+                        <div class="text-sm text-gray-300 italic p-3 bg-dark rounded border border-gray-800" id="modal-story"></div>
+                        
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="bg-gray-800/50 p-2 rounded text-center border border-gray-700">
+                                <span class="text-xs text-gray-400">Batallas</span><br>
+                                <span id="modal-battles" class="font-bold"></span>
+                            </div>
+                            <div class="bg-gray-800/50 p-2 rounded text-center border border-gray-700">
+                                <span class="text-xs text-gray-400">Puntos Pendientes (Pos/Neg)</span><br>
+                                <span class="font-bold text-success" id="modal-pos"></span> / <span class="font-bold text-danger" id="modal-neg"></span>
+                            </div>
+                        </div>
 
-        <section id="historia" class="panel">
-          <h2>Historia</h2>
-          <p>
-            Descubre la crónica ancestral del reino: pactos antiguos,
-            traiciones dinásticas y leyendas escritas a fuego.
-          </p>
-        </section>
-      </main>
+                        <!-- Action Areas (Points / Milestones) -->
+                        <div id="modal-action-area" class="hidden bg-indigo-950/30 border border-indigo-500/50 rounded-lg p-4 mt-4">
+                            <!-- Injected dynamically -->
+                        </div>
+
+                        <div>
+                            <h4 class="text-sm font-bold text-gray-400 mb-2">Medidores de Atributos</h4>
+                            <div id="modal-stats" class="space-y-2">
+                                <!-- Injected stats -->
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <h4 class="text-sm font-bold text-gray-400 mb-2 border-b border-gray-800 pb-1">Hitos y Evolución</h4>
+                            <ul id="modal-milestones" class="text-sm space-y-2 max-h-40 overflow-y-auto pr-2 text-gray-300">
+                                <!-- Milestones -->
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-database-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
-    <div id="battle-challenge-modal" class="challenge-modal hidden" role="dialog" aria-modal="true" aria-labelledby="challenge-title">
-      <div class="challenge-modal-card">
-        <h3 id="challenge-title">Desafío de batalla</h3>
-        <p id="challenge-message">Un usuario te ha retado.</p>
-        <div class="challenge-actions">
-          <button id="accept-challenge-btn" class="save-character-btn" type="button">Aceptar</button>
-          <button id="reject-challenge-btn" class="cancel-character-btn" type="button">Rechazar</button>
-        </div>
-      </div>
-    </div>
+    <script>
+        // State Management
+        let state = {
+            characters: [],
+            rotationPool: [],
+            relationships: {}
+        };
 
-    <div id="battle-arena-modal" class="battle-arena-modal hidden" role="dialog" aria-modal="true" aria-labelledby="battle-arena-title">
-      <div class="battle-arena-card">
-        <div class="battle-arena-header">
-          <h3 id="battle-arena-title">Batalla en curso</h3>
-          <p id="battle-turn-label"></p>
-          <button id="battle-arena-close-btn" class="cancel-character-btn battle-close-btn" type="button" aria-label="Cerrar ventana de batalla">Cerrar</button>
-        </div>
-        <section class="battle-board">
-          <div>
-            <h4>Campo rival</h4>
-            <div id="battle-opponent-slots" class="battle-slots"></div>
-          </div>
-          <div>
-            <h4>Tu campo</h4>
-            <div id="battle-player-slots" class="battle-slots"></div>
-          </div>
-          <div>
-            <h4>Tu mano</h4>
-            <div id="battle-hand" class="battle-hand"></div>
-          </div>
-        </section>
-      </div>
-    </div>
+        // Constants
+        const ATTRS = [
+            { key: 'INT', name: 'Inteligencia', color: 'blue' },
+            { key: 'STR', name: 'Fuerza', color: 'red' },
+            { key: 'SPD', name: 'Velocidad', color: 'yellow' },
+            { key: 'MAG', name: 'Magia', color: 'purple' }
+        ];
+        
+        const MILESTONE_TYPES = ["Acontecimiento", "Debilidad", "Compañero", "Arma", "Armadura", "Miedo", "Misión", "Clan", "Sabiduría", "Venganza", "Traición", "Rival"];
 
-    <div id="battle-card-action-modal" class="challenge-modal hidden" role="dialog" aria-modal="true" aria-labelledby="battle-card-action-title">
-      <div class="challenge-modal-card">
-        <h3 id="battle-card-action-title">Acción de carta</h3>
-        <p id="battle-card-action-text">¿Qué quieres hacer?</p>
-        <div class="challenge-actions">
-          <button id="battle-action-place" class="save-character-btn" type="button">COLOCAR</button>
-          <button id="battle-action-facedown" class="save-character-btn" type="button">BOCA ABAJO</button>
-          <button id="battle-action-cancel" class="cancel-character-btn" type="button">CANCELAR</button>
-        </div>
-      </div>
-    </div>
-    <script src="script.js"></script>
-  </body>
+        // Initialization
+        function init() {
+            const saved = localStorage.getItem('nexusRpgState');
+            if (saved) state = JSON.parse(saved);
+            
+            // Render initial view
+            renderGallery();
+            updateBattleButton();
+        }
+
+        function saveState() {
+            localStorage.setItem('nexusRpgState', JSON.stringify(state));
+            renderGallery();
+            updateBattleButton();
+        }
+
+        function generateId() {
+            return Math.random().toString(36).substr(2, 9);
+        }
+
+        // Tab Switching
+        function switchTab(tab) {
+            document.getElementById('section-management').classList.add('hidden');
+            document.getElementById('section-battle').classList.add('hidden');
+            document.getElementById('nav-management').classList.replace('bg-gray-800', 'text-gray-300');
+            document.getElementById('nav-battle').classList.replace('bg-gray-800', 'text-gray-300');
+            
+            document.getElementById(`section-${tab}`).classList.remove('hidden');
+            document.getElementById(`nav-${tab}`).classList.add('bg-gray-800');
+            document.getElementById(`nav-${tab}`).classList.remove('text-gray-300');
+        }
+
+        document.getElementById('create-char-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const newChar = {
+                id: generateId(),
+                name: document.getElementById('char-name').value,
+                image: document.getElementById('char-image').value,
+                story: document.getElementById('char-story').value,
+                stats: {
+                    INT: parseInt(document.getElementById('char-int').value),
+                    STR: parseInt(document.getElementById('char-str').value),
+                    SPD: parseInt(document.getElementById('char-spd').value),
+                    MAG: parseInt(document.getElementById('char-mag').value)
+                },
+                level: 1,
+                cap: 100,
+                breakthroughPoints: { INT: 0, STR: 0, SPD: 0, MAG: 0 },
+                points: { pos: 0, neg: 0 },
+                battles: 0,
+                milestones: [],
+                pendingAction: null // 'points' or 'milestone'
+            };
+            
+            state.characters.push(newChar);
+            saveState();
+            e.target.reset();
+        });
+
+        function renderGallery() {
+            const container = document.getElementById('char-gallery');
+            container.innerHTML = '';
+            document.getElementById('char-count').innerText = state.characters.length;
+
+            state.characters.forEach(char => {
+                const totalPoints = char.points.pos + char.points.neg;
+                const needsPoints = totalPoints >= 10;
+                const needsMilestone = char.battles > 0 && char.battles % 20 === 0 && char.pendingAction === 'milestone';
+                
+                // Prioritize setting pending action states visually
+                if (needsPoints) char.pendingAction = 'points';
+                
+                let badges = '';
+                if (char.pendingAction === 'points') badges += `<span class="absolute top-2 right-2 bg-red-600 text-white text-xs font-bold px-2 py-1 rounded shadow animate-pulse">¡Asignar Puntos!</span>`;
+                if (char.pendingAction === 'milestone') badges += `<span class="absolute top-2 left-2 bg-yellow-500 text-black text-xs font-bold px-2 py-1 rounded shadow animate-pulse">¡Hito Disponible!</span>`;
+
+                const card = document.createElement('div');
+                card.className = 'char-card bg-card border border-gray-800 rounded-xl overflow-hidden relative cursor-pointer';
+                card.onclick = () => openCharModal(char.id);
+                card.innerHTML = `
+                    ${badges}
+                    <img src="${char.image}" alt="${char.name}" class="w-full h-48 object-cover object-top" onerror="this.src='https://placehold.co/400x300/1e1e1e/6366f1?text=No+Image'">
+                    <div class="p-4">
+                        <h3 class="font-bold text-lg text-white truncate">${char.name}</h3>
+                        <p class="text-sm text-primary mb-2">Nivel ${char.level} | ${char.battles} Batallas</p>
+                        <div class="flex gap-2 text-xs">
+                            <span class="text-blue-400">INT: ${char.stats.INT}</span>
+                            <span class="text-red-400">FZA: ${char.stats.STR}</span>
+                            <span class="text-yellow-400">VEL: ${char.stats.SPD}</span>
+                            <span class="text-purple-400">MAG: ${char.stats.MAG}</span>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        let currentCharId = null;
+
+        function openCharModal(id) {
+            const char = state.characters.find(c => c.id === id);
+            if (!char) return;
+            currentCharId = id;
+
+            document.getElementById('modal-name').innerText = char.name;
+            document.getElementById('modal-img').src = char.image;
+            document.getElementById('modal-level').innerText = char.level;
+            document.getElementById('modal-story').innerText = char.story;
+            document.getElementById('modal-battles').innerText = char.battles;
+            document.getElementById('modal-pos').innerText = `+${char.points.pos}`;
+            document.getElementById('modal-neg').innerText = `-${char.points.neg}`;
+
+            renderModalStats(char);
+            renderModalMilestones(char);
+            
+            const actionArea = document.getElementById('modal-action-area');
+            actionArea.innerHTML = '';
+            actionArea.classList.add('hidden');
+
+            if (char.pendingAction === 'points') {
+                actionArea.classList.remove('hidden');
+                actionArea.innerHTML = `
+                    <h4 class="text-sm font-bold text-white mb-2 flex items-center gap-2">⚠️ Límite de puntos alcanzado (10)</h4>
+                    <p class="text-xs text-gray-300 mb-4">Asigna TODOS los puntos positivos a un medidor y TODOS los negativos a otro (pueden ser el mismo). Tope actual: ${char.cap}</p>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs mb-1 text-success">Asignar +${char.points.pos} a:</label>
+                            <select id="assign-pos" class="w-full bg-dark border border-gray-700 rounded p-1 text-white text-sm">
+                                ${ATTRS.map(a => `<option value="${a.key}">${a.name}</option>`).join('')}
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs mb-1 text-danger">Asignar -${char.points.neg} a:</label>
+                            <select id="assign-neg" class="w-full bg-dark border border-gray-700 rounded p-1 text-white text-sm">
+                                ${ATTRS.map(a => `<option value="${a.key}">${a.name}</option>`).join('')}
+                            </select>
+                        </div>
+                    </div>
+                    <button onclick="confirmPoints()" class="mt-4 w-full bg-primary hover:bg-indigo-600 text-white font-bold py-2 rounded text-sm transition">Confirmar Asignación</button>
+                `;
+            } else if (char.pendingAction === 'milestone') {
+                actionArea.classList.remove('hidden');
+                actionArea.innerHTML = `
+                    <h4 class="text-sm font-bold text-white mb-2 flex items-center gap-2">🌟 Hito Evolutivo Alcanzado</h4>
+                    <p class="text-xs text-gray-300 mb-2">Selecciona un tipo y describe narrativamente cómo afecta al personaje.</p>
+                    <select id="ms-type" class="w-full bg-dark border border-gray-700 rounded p-2 text-white text-sm mb-2">
+                        ${MILESTONE_TYPES.map(t => `<option value="${t}">${t}</option>`).join('')}
+                    </select>
+                    <textarea id="ms-note" placeholder="Justificación narrativa obligatoria..." required class="w-full bg-dark border border-gray-700 rounded p-2 text-white text-sm h-16 focus:border-primary"></textarea>
+                    <button onclick="confirmMilestone()" class="mt-2 w-full bg-yellow-600 hover:bg-yellow-500 text-white font-bold py-2 rounded text-sm transition">Registrar Hito</button>
+                `;
+            }
+
+            document.getElementById('char-modal').classList.remove('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('char-modal').classList.add('hidden');
+            currentCharId = null;
+        }
+
+        function renderModalStats(char) {
+            const container = document.getElementById('modal-stats');
+            container.innerHTML = '';
+            
+            ATTRS.forEach(attr => {
+                const val = char.stats[attr.key];
+                const pct = Math.min((val / char.cap) * 100, 100);
+                const isCapped = val >= char.cap;
+                const btText = isCapped ? `<span class="text-xs text-yellow-500 ml-2">(B-Through: ${char.breakthroughPoints[attr.key]}/5)</span>` : '';
+                
+                container.innerHTML += `
+                    <div>
+                        <div class="flex justify-between text-xs mb-1">
+                            <span class="text-${attr.color}-400 font-medium">${attr.name}</span>
+                            <span>${val} / ${char.cap} ${btText}</span>
+                        </div>
+                        <div class="w-full bg-gray-800 rounded-full h-2 overflow-hidden">
+                            <div class="bg-${attr.color}-500 h-2 rounded-full transition-all duration-500" style="width: ${pct}%"></div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function renderModalMilestones(char) {
+            const container = document.getElementById('modal-milestones');
+            if (char.milestones.length === 0) {
+                container.innerHTML = '<li class="text-gray-500 italic text-xs">Sin hitos registrados.</li>';
+                return;
+            }
+            container.innerHTML = char.milestones.map(m => `
+                <li class="border-l-2 border-primary pl-3 py-1 bg-dark/50 rounded-r">
+                    <strong class="text-white">${m.type}:</strong> ${m.note}
+                </li>
+            `).join('');
+        }
+
+        function confirmPoints() {
+            const char = state.characters.find(c => c.id === currentCharId);
+            const posAttr = document.getElementById('assign-pos').value;
+            const negAttr = document.getElementById('assign-neg').value;
+            
+            // Apply Negative
+            char.stats[negAttr] = Math.max(1, char.stats[negAttr] - char.points.neg);
+            
+            // Apply Positive (with Cap & Breakthrough logic)
+            let pointsToAdd = char.points.pos;
+            let currentStat = char.stats[posAttr];
+            
+            if (currentStat < char.cap) {
+                let space = char.cap - currentStat;
+                if (pointsToAdd <= space) {
+                    char.stats[posAttr] += pointsToAdd;
+                    pointsToAdd = 0;
+                } else {
+                    char.stats[posAttr] = char.cap;
+                    pointsToAdd -= space;
+                }
+            }
+
+            // If points remaining and at cap, they go to breakthrough
+            if (pointsToAdd > 0 && char.stats[posAttr] >= char.cap) {
+                char.breakthroughPoints[posAttr] += pointsToAdd;
+                if (char.breakthroughPoints[posAttr] >= 5) {
+                    // Level UP!
+                    char.level++;
+                    char.cap += 100;
+                    char.stats[posAttr]++; // Becomes 101 for instance
+                    char.breakthroughPoints[posAttr] -= 5; // keep remainder
+                    alert(`¡${char.name} ha ROTO SU LÍMITE en ${posAttr} y ha subido a NIVEL ${char.level}! Su nuevo tope es ${char.cap}.`);
+                }
+            }
+
+            // Reset points
+            char.points.pos = 0;
+            char.points.neg = 0;
+            char.pendingAction = null;
+            
+            // Recheck if needs milestone immediately after point assignment
+            if (char.battles > 0 && char.battles % 20 === 0) {
+                // If they haven't claimed it yet, let's just queue it up visually.
+                // To keep simple, we don't auto force it here, it will appear on next click or if already flagged.
+            }
+
+            saveState();
+            openCharModal(char.id); // Refresh
+        }
+
+        function confirmMilestone() {
+            const char = state.characters.find(c => c.id === currentCharId);
+            const type = document.getElementById('ms-type').value;
+            const note = document.getElementById('ms-note').value;
+            
+            if (!note.trim()) {
+                alert("Debes escribir una justificación.");
+                return;
+            }
+
+            char.milestones.push({ type, note });
+            char.story += `\n\n[Hito - ${type}]: ${note}`;
+            char.pendingAction = null;
+
+            saveState();
+            openCharModal(char.id); // Refresh
+        }
+
+        function updateBattleButton() {
+            const btn = document.getElementById('btn-start-battle');
+            if (state.characters.length < 8) {
+                btn.disabled = true;
+                btn.innerText = `Recluta al menos 8 (Faltan ${8 - state.characters.length})`;
+            } else {
+                btn.disabled = false;
+                btn.innerText = "Iniciar Batalla 4v4";
+            }
+        }
+
+        let currentBattle = null;
+
+        function startBattle() {
+            document.getElementById('btn-start-battle').classList.add('hidden');
+            document.getElementById('battle-arena').classList.remove('hidden');
+            document.getElementById('battle-actions').classList.add('hidden');
+            document.getElementById('battle-log').innerHTML = '';
+            
+            // 1. Matchmaking with Rotation
+            let fightersIds = [];
+            let tempPool = [...state.rotationPool];
+            
+            while (fightersIds.length < 8) {
+                if (tempPool.length === 0) {
+                    // Refill pool with characters NOT already chosen in this selection
+                    tempPool = state.characters.map(c => c.id).filter(id => !fightersIds.includes(id));
+                }
+                const randIdx = Math.floor(Math.random() * tempPool.length);
+                fightersIds.push(tempPool.splice(randIdx, 1)[0]);
+            }
+            
+            // Update the real pool
+            state.rotationPool = tempPool;
+
+            // 2. Assign Teams
+            const redTeam = fightersIds.slice(0, 4).map(id => state.characters.find(c => c.id === id));
+            const blueTeam = fightersIds.slice(4, 8).map(id => state.characters.find(c => c.id === id));
+
+            // Setup current battle state
+            currentBattle = { redTeam, blueTeam, redWins: 0, blueWins: 0, duelsFought: 0 };
+            
+            renderTeam('red-corner', redTeam);
+            renderTeam('blue-corner', blueTeam);
+            
+            // Start combat sequence
+            setTimeout(executeCombat, 1000);
+        }
+
+        function renderTeam(containerId, team) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = '';
+            team.forEach((char, idx) => {
+                container.innerHTML += `
+                    <div class="card-container perspective-1000" id="${containerId}-card-${idx}">
+                        <div class="card-flipper transform-style-3d transition-transform-duration">
+                            <!-- Card Front (Stats) - Rotated by default -->
+                            <div class="card-front backface-hidden bg-card border border-gray-700 flex flex-col">
+                                <img src="${char.image}" class="w-full h-24 object-cover rounded-t-lg" onerror="this.src='https://placehold.co/400x300/1e1e1e/6366f1'">
+                                <div class="p-2 text-center flex-1 flex flex-col justify-between">
+                                    <h4 class="text-xs font-bold truncate text-white">${char.name}</h4>
+                                    <div class="grid grid-cols-2 gap-1 text-[10px] mt-1">
+                                        <div class="bg-gray-800 rounded text-blue-400">IN ${char.stats.INT}</div>
+                                        <div class="bg-gray-800 rounded text-red-400">FZ ${char.stats.STR}</div>
+                                        <div class="bg-gray-800 rounded text-yellow-400">VL ${char.stats.SPD}</div>
+                                        <div class="bg-gray-800 rounded text-purple-400">MG ${char.stats.MAG}</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- Card Back (Logo) -->
+                            <div class="card-back backface-hidden">
+                                ⚔️
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function logBattle(msg, isHighlight = false) {
+            const logBox = document.getElementById('battle-log');
+            const color = isHighlight ? 'text-white font-bold' : 'text-gray-300';
+            logBox.innerHTML += `<div class="${color}">${msg}</div>`;
+            logBox.scrollTop = logBox.scrollHeight;
+        }
+
+        async function executeCombat() {
+            const { redTeam, blueTeam } = currentBattle;
+            let attrsToUse = [...ATTRS].sort(() => Math.random() - 0.5); // Shuffle
+            
+            for (let i = 0; i < 4; i++) {
+                // Check Premature Victory
+                if (currentBattle.redWins === 3 || currentBattle.blueWins === 3) {
+                    logBattle(`¡VICTORIA PREMATURA! Un equipo alcanzó 3 victorias. El cuarto duelo se cancela.`, true);
+                    break; 
+                }
+
+                const attr = attrsToUse[i];
+                currentBattle.duelsFought++;
+                const redChar = redTeam[i];
+                const blueChar = blueTeam[i];
+                const redVal = redChar.stats[attr.key];
+                const blueVal = blueChar.stats[attr.key];
+
+                logBattle(`Duelo ${i+1}: Evaluando ${attr.name}...`);
+                await sleep(1000);
+
+                // Reveal Cards
+                document.getElementById(`red-corner-card-${i}`).classList.add('flipped');
+                document.getElementById(`blue-corner-card-${i}`).classList.add('flipped');
+                await sleep(800);
+
+                if (redVal > blueVal) {
+                    currentBattle.redWins++;
+                    logBattle(`🥊 ${redChar.name} (${redVal}) vence a ${blueChar.name} (${blueVal}). Punto ROJO.`);
+                } else if (blueVal > redVal) {
+                    currentBattle.blueWins++;
+                    logBattle(`🥊 ${blueChar.name} (${blueVal}) vence a ${redChar.name} (${redVal}). Punto AZUL.`);
+                } else {
+                    // Tie in duel goes to random
+                    const redWon = Math.random() > 0.5;
+                    if(redWon) currentBattle.redWins++; else currentBattle.blueWins++;
+                    logBattle(`🥊 Empate en ${attr.name} (${redVal}). Moneda decide: Punto ${redWon ? 'ROJO' : 'AZUL'}.`);
+                }
+                
+                logBattle(`Marcador: ROJO ${currentBattle.redWins} - AZUL ${currentBattle.blueWins}`);
+                await sleep(1000);
+            }
+
+            // Evaluate Match End
+            if (currentBattle.redWins === currentBattle.blueWins) {
+                logBattle(`¡EMPATE GLOBAL! Resolviendo por Sumatoria Total...`, true);
+                await sleep(1500);
+                
+                let redSum = 0; let blueSum = 0;
+                for(let i=0; i<4; i++) {
+                    redSum += redTeam[i].stats.INT + redTeam[i].stats.STR + redTeam[i].stats.SPD + redTeam[i].stats.MAG;
+                    blueSum += blueTeam[i].stats.INT + blueTeam[i].stats.STR + blueTeam[i].stats.SPD + blueTeam[i].stats.MAG;
+                }
+                
+                logBattle(`Sumatoria ROJA: ${redSum} | Sumatoria AZUL: ${blueSum}`);
+                if (redSum >= blueSum) {
+                    currentBattle.redWins++;
+                    logBattle(`¡La Esquina ROJA gana el desempate!`, true);
+                } else {
+                    currentBattle.blueWins++;
+                    logBattle(`¡La Esquina AZUL gana el desempate!`, true);
+                }
+            }
+
+            const winner = currentBattle.redWins > currentBattle.blueWins ? 'ROJA' : 'AZUL';
+            logBattle(`🏆 BATALLA FINALIZADA. Gana la Esquina ${winner}.`, true);
+            
+            document.getElementById('battle-actions').classList.remove('hidden');
+        }
+
+        function finishBattle() {
+            const redWon = currentBattle.redWins > currentBattle.blueWins;
+            const participantsCount = currentBattle.duelsFought; // usually 4, unless early victory (3)
+            
+            const winningTeam = redWon ? currentBattle.redTeam : currentBattle.blueTeam;
+            const losingTeam = redWon ? currentBattle.blueTeam : currentBattle.redTeam;
+
+            // Process only those who fought (up to participantsCount)
+            for (let i = 0; i < participantsCount; i++) {
+                // Winners
+                let wChar = winningTeam[i];
+                wChar.battles++;
+                wChar.points.pos++;
+                if (wChar.battles % 20 === 0) wChar.pendingAction = 'milestone';
+                
+                // Losers
+                let lChar = losingTeam[i];
+                lChar.battles++;
+                lChar.points.neg++;
+                if (lChar.battles % 20 === 0) lChar.pendingAction = 'milestone';
+            }
+
+            // Process Relationships (Allies and Rivals) only for those who fought
+            const actualRed = currentBattle.redTeam.slice(0, participantsCount);
+            const actualBlue = currentBattle.blueTeam.slice(0, participantsCount);
+            
+            processRelationships(actualRed, actualBlue, winningTeam.includes(actualRed[0]) ? 'red' : 'blue');
+
+            saveState();
+            
+            // Reset Arena UI
+            document.getElementById('battle-arena').classList.add('hidden');
+            document.getElementById('btn-start-battle').classList.remove('hidden');
+            currentBattle = null;
+            
+            // Switch back to management to see updates
+            switchTab('management');
+        }
+
+        function getRelKey(id1, id2) {
+            return [id1, id2].sort().join('_');
+        }
+
+        function processRelationships(redTeam, blueTeam, winnerTeamStr) {
+            const updateRel = (c1, c2, type, winnerStr = null, loserStr = null) => {
+                if(c1.id === c2.id) return;
+                const key = getRelKey(c1.id, c2.id);
+                if (!state.relationships[key]) {
+                    state.relationships[key] = { allies: 0, rivals: 0, hasCompanero: false, hasRival: false };
+                }
+                let rel = state.relationships[key];
+
+                if (type === 'ally') {
+                    rel.allies++;
+                    if (rel.hasRival && rel.allies === 5) {
+                        // Remove Rival
+                        rel.hasRival = false;
+                        rel.allies = 0;
+                        removeMilestone(c1, "Rival", c2.name);
+                        removeMilestone(c2, "Rival", c1.name);
+                    } else if (!rel.hasCompanero && !rel.hasRival && rel.allies === 5) {
+                        rel.hasCompanero = true;
+                        rel.allies = 0;
+                        addAutoMilestone(c1, "Compañero", `Vínculo forjado en batalla junto a ${c2.name}.`);
+                        addAutoMilestone(c2, "Compañero", `Vínculo forjado en batalla junto a ${c1.name}.`);
+                    }
+                } else if (type === 'rival') {
+                    rel.rivals++;
+                    if (rel.hasCompanero && rel.rivals === 5) {
+                        // Betrayal / Revenge
+                        rel.hasCompanero = false;
+                        rel.rivals = 0;
+                        // Determine who won this specific match
+                        let winnerChar = winnerStr === 'red' ? (redTeam.includes(c1) ? c1 : c2) : (blueTeam.includes(c1) ? c1 : c2);
+                        let loserChar = winnerChar.id === c1.id ? c2 : c1;
+                        
+                        addAutoMilestone(winnerChar, "Traición", `Se volvió contra su antiguo compañero ${loserChar.name} y salió victorioso.`);
+                        addAutoMilestone(loserChar, "Venganza", `Jura destruir a su antiguo compañero ${winnerChar.name} tras ser derrotado.`);
+                    } else if (!rel.hasCompanero && !rel.hasRival && rel.rivals === 5) {
+                        rel.hasRival = true;
+                        rel.rivals = 0;
+                        addAutoMilestone(c1, "Rival", `Desarrolló una profunda rivalidad con ${c2.name}.`);
+                        addAutoMilestone(c2, "Rival", `Desarrolló una profunda rivalidad con ${c1.name}.`);
+                    }
+                }
+            };
+
+            // Allies: Pairs within Red
+            for(let i=0; i<redTeam.length; i++) {
+                for(let j=i+1; j<redTeam.length; j++) {
+                    updateRel(redTeam[i], redTeam[j], 'ally');
+                }
+            }
+            // Allies: Pairs within Blue
+            for(let i=0; i<blueTeam.length; i++) {
+                for(let j=i+1; j<blueTeam.length; j++) {
+                    updateRel(blueTeam[i], blueTeam[j], 'ally');
+                }
+            }
+            // Rivals: Red vs Blue
+            for(let i=0; i<redTeam.length; i++) {
+                for(let j=0; j<blueTeam.length; j++) {
+                    updateRel(redTeam[i], blueTeam[j], 'rival', winnerTeamStr);
+                }
+            }
+        }
+
+        function addAutoMilestone(char, type, note) {
+            char.milestones.push({ type, note });
+            char.story += `\n\n[Hito Automático - ${type}]: ${note}`;
+        }
+
+        function removeMilestone(char, type, relatedName) {
+            // Find and remove the specific rival milestone
+            char.milestones = char.milestones.filter(m => !(m.type === type && m.note.includes(relatedName)));
+            char.story += `\n\n[Evolución]: La animosidad con ${relatedName} se ha disipado tras luchar juntos.`;
+        }
+
+        // Utility: sleep for animations
+        const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+        // Start app
+        init();
+    </script>
+</body>
 </html>
