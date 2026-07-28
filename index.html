@@ -82,9 +82,20 @@
 
     <main id="section-management" class="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
         
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+            <div>
+                <h1 class="text-3xl font-bold text-white">Mazo de Personajes</h1>
+                <p class="text-sm text-gray-400 mt-1">Gestiona tu colección desde las cartas; el reclutamiento permanece oculto hasta que lo necesites.</p>
+            </div>
+            <button id="btn-toggle-create" onclick="toggleCreateForm()" class="bg-primary hover:bg-indigo-600 text-white font-bold py-3 px-5 rounded-lg transition shadow-lg shadow-indigo-500/30">+ Nuevo personaje</button>
+        </div>
+
         <!-- Create Character Form -->
-        <div class="bg-card rounded-xl p-6 shadow-lg border border-gray-800 mb-10">
-            <h2 class="text-xl font-bold mb-4 border-b border-gray-700 pb-2">Reclutar Nuevo Personaje</h2>
+        <div id="create-char-panel" class="hidden bg-card rounded-xl p-6 shadow-lg border border-gray-800 mb-10">
+            <div class="flex items-center justify-between gap-4 mb-4 border-b border-gray-700 pb-2">
+                <h2 class="text-xl font-bold">Reclutar Nuevo Personaje</h2>
+                <button onclick="toggleCreateForm(false)" class="text-gray-400 hover:text-white text-sm">Ocultar</button>
+            </div>
             <form id="create-char-form" class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div class="space-y-4">
                     <div>
@@ -127,7 +138,7 @@
 
         <!-- Gallery -->
         <div>
-            <h2 class="text-2xl font-bold mb-6">Mazo de Personajes <span id="char-count" class="text-sm font-normal text-gray-400 bg-gray-800 py-1 px-2 rounded ml-2">0</span></h2>
+            <h2 class="text-2xl font-bold mb-6">Personajes <span id="char-count" class="text-sm font-normal text-gray-400 bg-gray-800 py-1 px-2 rounded ml-2">0</span></h2>
             <div id="char-gallery" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                 <!-- Dynamically populated -->
             </div>
@@ -214,10 +225,10 @@
                         </div>
                         
                         <div>
-                            <h4 class="text-sm font-bold text-gray-400 mb-2 border-b border-gray-800 pb-1">Hitos y Evolución</h4>
-                            <ul id="modal-milestones" class="text-sm space-y-2 max-h-40 overflow-y-auto pr-2 text-gray-300">
-                                <!-- Milestones -->
-                            </ul>
+                            <h4 class="text-sm font-bold text-gray-400 mb-2 border-b border-gray-800 pb-1">Etiquetas de evolución</h4>
+                            <div id="modal-milestones" class="flex flex-wrap gap-2 max-h-40 overflow-y-auto pr-2 text-gray-300">
+                                <!-- Milestone tags -->
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -241,12 +252,87 @@
             { key: 'MAG', name: 'Magia', color: 'purple' }
         ];
         
-        const MILESTONE_TYPES = ["Acontecimiento", "Debilidad", "Compañero", "Arma", "Armadura", "Miedo", "Misión", "Clan", "Sabiduría", "Venganza", "Traición", "Rival"];
+        const MILESTONE_CATEGORIES = [
+            {
+                label: '⚔️ Equipamiento y Posesiones',
+                types: [
+                    { name: 'Arma', hint: 'Arma nueva o mejora de una existente.' },
+                    { name: 'Armadura', hint: 'Protección física o mágica.' },
+                    { name: 'Artefacto / Reliquia', hint: 'Objeto de poder que no es arma ni armadura.' },
+                    { name: 'Montura / Vehículo', hint: 'Transporte o bestia de carga.' },
+                    { name: 'Refugio / Territorio', hint: 'Lugar que ahora reclama como propio.' }
+                ]
+            },
+            {
+                label: '🧠 Desarrollo Personal y Mental',
+                types: [
+                    { name: 'Acontecimiento', hint: 'Suceso impactante que cambió su perspectiva.' },
+                    { name: 'Sabiduría / Revelación', hint: 'Conocimiento profundo o secreto descubierto.' },
+                    { name: 'Miedo / Trauma', hint: 'Fobia o herida psicológica tras las batallas.' },
+                    { name: 'Debilidad', hint: 'Limitación física o mágica adquirida.' },
+                    { name: 'Mutación / Marca Física', hint: 'Cambio permanente en su cuerpo.' }
+                ]
+            },
+            {
+                label: '🤝 Relaciones y Estatus Social',
+                types: [
+                    { name: 'Compañero', hint: 'Aliado incondicional, mascota o aprendiz.' },
+                    { name: 'Rival', hint: 'Alguien enfrentado múltiples veces.' },
+                    { name: 'Venganza / Traición', hint: 'Ruptura de una alianza.' },
+                    { name: 'Clan / Facción', hint: 'Ingreso o expulsión de un grupo.' },
+                    { name: 'Título / Apodo', hint: 'Reputación ganada en el mundo.' },
+                    { name: 'Misión / Objetivo Vital', hint: 'Meta que guiará sus pasos.' },
+                    { name: 'Deuda / Obligación', hint: 'Favor, vida o dinero pendiente.' }
+                ]
+            },
+            {
+                label: '🔮 Fuerzas Sobrenaturales o del Destino',
+                types: [
+                    { name: 'Maldición', hint: 'Efecto negativo constante.' },
+                    { name: 'Bendición / Don', hint: 'Favor especial sobrenatural o genético.' },
+                    { name: 'Pacto / Juramento', hint: 'Contrato que no puede romper.' }
+                ]
+            }
+        ];
+        const MILESTONE_TYPES = MILESTONE_CATEGORIES.flatMap(category => category.types);
+        const MILESTONE_COLORS = {
+            'Arma': 'bg-red-950/70 text-red-200 border-red-700',
+            'Armadura': 'bg-slate-800 text-slate-200 border-slate-500',
+            'Artefacto / Reliquia': 'bg-amber-950/70 text-amber-200 border-amber-600',
+            'Montura / Vehículo': 'bg-orange-950/70 text-orange-200 border-orange-600',
+            'Refugio / Territorio': 'bg-emerald-950/70 text-emerald-200 border-emerald-600',
+            'Acontecimiento': 'bg-indigo-950/70 text-indigo-200 border-indigo-600',
+            'Sabiduría / Revelación': 'bg-cyan-950/70 text-cyan-200 border-cyan-600',
+            'Miedo / Trauma': 'bg-purple-950/70 text-purple-200 border-purple-600',
+            'Debilidad': 'bg-stone-900 text-stone-200 border-stone-500',
+            'Mutación / Marca Física': 'bg-lime-950/70 text-lime-200 border-lime-600',
+            'Compañero': 'bg-green-950/70 text-green-200 border-green-600',
+            'Rival': 'bg-rose-950/70 text-rose-200 border-rose-600',
+            'Venganza / Traición': 'bg-fuchsia-950/70 text-fuchsia-200 border-fuchsia-600',
+            'Traición': 'bg-fuchsia-950/70 text-fuchsia-200 border-fuchsia-600',
+            'Venganza': 'bg-fuchsia-950/70 text-fuchsia-200 border-fuchsia-600',
+            'Clan / Facción': 'bg-blue-950/70 text-blue-200 border-blue-600',
+            'Clan': 'bg-blue-950/70 text-blue-200 border-blue-600',
+            'Título / Apodo': 'bg-yellow-950/70 text-yellow-200 border-yellow-600',
+            'Misión / Objetivo Vital': 'bg-teal-950/70 text-teal-200 border-teal-600',
+            'Misión': 'bg-teal-950/70 text-teal-200 border-teal-600',
+            'Deuda / Obligación': 'bg-pink-950/70 text-pink-200 border-pink-600',
+            'Maldición': 'bg-violet-950/70 text-violet-200 border-violet-600',
+            'Bendición / Don': 'bg-sky-950/70 text-sky-200 border-sky-600',
+            'Pacto / Juramento': 'bg-gray-900 text-gray-200 border-gray-500'
+        };
 
         // Initialization
         function init() {
             const saved = localStorage.getItem('nexusRpgState');
             if (saved) state = JSON.parse(saved);
+            state.characters.forEach(char => {
+                char.pendingMilestones = char.pendingMilestones || 0;
+                if (char.pendingAction === 'milestone') {
+                    char.pendingMilestones = Math.max(char.pendingMilestones, 1);
+                    char.pendingAction = null;
+                }
+            });
             
             // Render initial view
             renderGallery();
@@ -261,6 +347,30 @@
 
         function generateId() {
             return Math.random().toString(36).substr(2, 9);
+        }
+
+        function toggleCreateForm(forceOpen = null) {
+            const panel = document.getElementById('create-char-panel');
+            const button = document.getElementById('btn-toggle-create');
+            const shouldOpen = forceOpen === null ? panel.classList.contains('hidden') : forceOpen;
+            panel.classList.toggle('hidden', !shouldOpen);
+            button.innerText = shouldOpen ? 'Ocultar formulario' : '+ Nuevo personaje';
+        }
+
+        function queueMilestone(char) {
+            char.pendingMilestones = (char.pendingMilestones || 0) + 1;
+        }
+
+        function getMilestoneColor(type) {
+            return MILESTONE_COLORS[type] || 'bg-gray-800 text-gray-200 border-gray-600';
+        }
+
+        function milestoneOptionsHtml() {
+            return MILESTONE_CATEGORIES.map(category => `
+                <optgroup label="${category.label}">
+                    ${category.types.map(type => `<option value="${type.name}" title="${type.hint}">${type.name}</option>`).join('')}
+                </optgroup>
+            `).join('');
         }
 
         // Tab Switching
@@ -294,12 +404,14 @@
                 points: { pos: 0, neg: 0 },
                 battles: 0,
                 milestones: [],
-                pendingAction: null // 'points' or 'milestone'
+                pendingMilestones: 0,
+                pendingAction: null // 'points'
             };
             
             state.characters.push(newChar);
             saveState();
             e.target.reset();
+            toggleCreateForm(false);
         });
 
         function renderGallery() {
@@ -310,14 +422,14 @@
             state.characters.forEach(char => {
                 const totalPoints = char.points.pos + char.points.neg;
                 const needsPoints = totalPoints >= 10;
-                const needsMilestone = char.battles > 0 && char.battles % 20 === 0 && char.pendingAction === 'milestone';
+                const needsMilestone = (char.pendingMilestones || 0) > 0;
                 
                 // Prioritize setting pending action states visually
                 if (needsPoints) char.pendingAction = 'points';
                 
                 let badges = '';
                 if (char.pendingAction === 'points') badges += `<span class="absolute top-2 right-2 bg-red-600 text-white text-xs font-bold px-2 py-1 rounded shadow animate-pulse">¡Asignar Puntos!</span>`;
-                if (char.pendingAction === 'milestone') badges += `<span class="absolute top-2 left-2 bg-yellow-500 text-black text-xs font-bold px-2 py-1 rounded shadow animate-pulse">¡Hito Disponible!</span>`;
+                if (needsMilestone) badges += `<span class="absolute top-2 left-2 bg-yellow-500 text-black text-xs font-bold px-2 py-1 rounded shadow animate-pulse">¡Hito Disponible!</span>`;
 
                 const card = document.createElement('div');
                 card.className = 'char-card bg-card border border-gray-800 rounded-xl overflow-hidden relative cursor-pointer';
@@ -383,16 +495,20 @@
                     </div>
                     <button onclick="confirmPoints()" class="mt-4 w-full bg-primary hover:bg-indigo-600 text-white font-bold py-2 rounded text-sm transition">Confirmar Asignación</button>
                 `;
-            } else if (char.pendingAction === 'milestone') {
+            }
+
+            if ((char.pendingMilestones || 0) > 0) {
                 actionArea.classList.remove('hidden');
-                actionArea.innerHTML = `
-                    <h4 class="text-sm font-bold text-white mb-2 flex items-center gap-2">🌟 Hito Evolutivo Alcanzado</h4>
-                    <p class="text-xs text-gray-300 mb-2">Selecciona un tipo y describe narrativamente cómo afecta al personaje.</p>
-                    <select id="ms-type" class="w-full bg-dark border border-gray-700 rounded p-2 text-white text-sm mb-2">
-                        ${MILESTONE_TYPES.map(t => `<option value="${t}">${t}</option>`).join('')}
-                    </select>
-                    <textarea id="ms-note" placeholder="Justificación narrativa obligatoria..." required class="w-full bg-dark border border-gray-700 rounded p-2 text-white text-sm h-16 focus:border-primary"></textarea>
-                    <button onclick="confirmMilestone()" class="mt-2 w-full bg-yellow-600 hover:bg-yellow-500 text-white font-bold py-2 rounded text-sm transition">Registrar Hito</button>
+                actionArea.innerHTML += `
+                    <div class="${char.pendingAction === 'points' ? 'mt-4 border-t border-indigo-500/40 pt-4' : ''}">
+                        <h4 class="text-sm font-bold text-white mb-2 flex items-center gap-2">🌟 Hito Evolutivo Disponible (${char.pendingMilestones})</h4>
+                        <p class="text-xs text-gray-300 mb-2">Cada 20 batallas desbloquean una etiqueta. Elige el tipo y escribe un valor breve, por ejemplo: Rival: personaje A.</p>
+                        <select id="ms-type" class="w-full bg-dark border border-gray-700 rounded p-2 text-white text-sm mb-2">
+                            ${milestoneOptionsHtml()}
+                        </select>
+                        <input id="ms-note" placeholder="personaje, objeto, lugar o cambio concreto..." required class="w-full bg-dark border border-gray-700 rounded p-2 text-white text-sm focus:border-primary">
+                        <button onclick="confirmMilestone()" class="mt-2 w-full bg-yellow-600 hover:bg-yellow-500 text-white font-bold py-2 rounded text-sm transition">Registrar Etiqueta</button>
+                    </div>
                 `;
             }
 
@@ -431,13 +547,13 @@
         function renderModalMilestones(char) {
             const container = document.getElementById('modal-milestones');
             if (char.milestones.length === 0) {
-                container.innerHTML = '<li class="text-gray-500 italic text-xs">Sin hitos registrados.</li>';
+                container.innerHTML = '<span class="text-gray-500 italic text-xs">Sin etiquetas registradas.</span>';
                 return;
             }
             container.innerHTML = char.milestones.map(m => `
-                <li class="border-l-2 border-primary pl-3 py-1 bg-dark/50 rounded-r">
-                    <strong class="text-white">${m.type}:</strong> ${m.note}
-                </li>
+                <span class="inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-semibold ${getMilestoneColor(m.type)}" title="${m.note}">
+                    <strong>${m.type}:</strong> <span class="font-normal">${m.note}</span>
+                </span>
             `).join('');
         }
 
@@ -503,8 +619,9 @@
             }
 
             char.milestones.push({ type, note });
-            char.story += `\n\n[Hito - ${type}]: ${note}`;
-            char.pendingAction = null;
+            char.story += `\n\n[Etiqueta - ${type}]: ${note}`;
+            char.pendingMilestones = Math.max(0, (char.pendingMilestones || 0) - 1);
+            if (char.pendingAction !== 'points') char.pendingAction = null;
 
             saveState();
             openCharModal(char.id); // Refresh
@@ -679,13 +796,13 @@
                 let wChar = winningTeam[i];
                 wChar.battles++;
                 wChar.points.pos++;
-                if (wChar.battles % 20 === 0) wChar.pendingAction = 'milestone';
+                if (wChar.battles % 20 === 0) queueMilestone(wChar);
                 
                 // Losers
                 let lChar = losingTeam[i];
                 lChar.battles++;
                 lChar.points.neg++;
-                if (lChar.battles % 20 === 0) lChar.pendingAction = 'milestone';
+                if (lChar.battles % 20 === 0) queueMilestone(lChar);
             }
 
             // Process Relationships (Allies and Rivals) only for those who fought
@@ -729,8 +846,8 @@
                     } else if (!rel.hasCompanero && !rel.hasRival && rel.allies === 5) {
                         rel.hasCompanero = true;
                         rel.allies = 0;
-                        addAutoMilestone(c1, "Compañero", `Vínculo forjado en batalla junto a ${c2.name}.`);
-                        addAutoMilestone(c2, "Compañero", `Vínculo forjado en batalla junto a ${c1.name}.`);
+                        addAutoMilestone(c1, "Compañero", c2.name);
+                        addAutoMilestone(c2, "Compañero", c1.name);
                     }
                 } else if (type === 'rival') {
                     rel.rivals++;
@@ -742,13 +859,13 @@
                         let winnerChar = winnerStr === 'red' ? (redTeam.includes(c1) ? c1 : c2) : (blueTeam.includes(c1) ? c1 : c2);
                         let loserChar = winnerChar.id === c1.id ? c2 : c1;
                         
-                        addAutoMilestone(winnerChar, "Traición", `Se volvió contra su antiguo compañero ${loserChar.name} y salió victorioso.`);
-                        addAutoMilestone(loserChar, "Venganza", `Jura destruir a su antiguo compañero ${winnerChar.name} tras ser derrotado.`);
+                        addAutoMilestone(winnerChar, "Venganza / Traición", `Traicionó a ${loserChar.name}`);
+                        addAutoMilestone(loserChar, "Venganza / Traición", `Venganza contra ${winnerChar.name}`);
                     } else if (!rel.hasCompanero && !rel.hasRival && rel.rivals === 5) {
                         rel.hasRival = true;
                         rel.rivals = 0;
-                        addAutoMilestone(c1, "Rival", `Desarrolló una profunda rivalidad con ${c2.name}.`);
-                        addAutoMilestone(c2, "Rival", `Desarrolló una profunda rivalidad con ${c1.name}.`);
+                        addAutoMilestone(c1, "Rival", c2.name);
+                        addAutoMilestone(c2, "Rival", c1.name);
                     }
                 }
             };
