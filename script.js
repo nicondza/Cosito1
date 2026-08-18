@@ -339,9 +339,49 @@ function mostrarPersonajes(lista) {
 }
 const modal = document.getElementById("modal-personaje");
 const btnCerrar = document.querySelector(".cerrar-modal");
+function obtenerColorAtributo(atributo) {
+    const colores = {
+        velocidad: "#2dd4bf",
+        inteligencia: "#60a5fa",
+        fuerza: "#f97316",
+        defensa: "#a3e635",
+        magia: "#c084fc"
+    };
+
+    return colores[atributo] || "#88c0d0";
+}
+
+function generarBarraAtributo(atributo, valor) {
+    const info = getStatInfo(atributo, valor);
+    const color = obtenerColorAtributo(atributo);
+    const medida = info.esEv ? Math.min(100, (info.evValue / 10) * 100) : Math.min(100, (info.statValue % 100 || (info.statValue > 0 ? 100 : 0)));
+    const etiquetaMedida = info.esEv ? `EV ${info.evValue}/10` : `${info.statValue}/100`;
+
+    return `
+        <div class="atributo-medidor" style="--color-atributo: ${color};">
+            <div class="atributo-medidor-encabezado">
+                <span class="atributo-medidor-nombre ${info.esEv ? 'texto-dorado' : ''}">${info.nombreDisplay}</span>
+                <span class="atributo-medidor-valor">${info.valorDisplay}</span>
+            </div>
+            <div class="atributo-barra" aria-label="${info.nombreDisplay}: ${etiquetaMedida}">
+                <span style="width: ${medida}%"></span>
+            </div>
+            <small class="atributo-medidor-medida">${etiquetaMedida}</small>
+        </div>
+    `;
+}
+
 function abrirModal(personaje) {
     const detalle = document.getElementById("detalle-personaje");
     const stats = personaje.atributos || {};
+    const evolucionDisponible = ((personaje.puntosPositivos || 0) + (personaje.puntosNegativos || 0)) >= 25;
+    const tarjetaDisponible = (personaje.duelos || 0) >= 15;
+    const accionesDisponibles = `
+        <div class="acciones-personaje">
+            ${tarjetaDisponible ? `<button id="btn-tarjeta-disponible" class="boton-alerta-personaje boton-alerta-tarjeta" onclick="abrirModalTarjetaHistoria('${personaje.id}')">✨ TARJETA DISPONIBLE</button>` : ''}
+            ${evolucionDisponible ? `<button id="btn-evolucion-pendiente" class="boton-alerta-personaje boton-alerta-evolucion" onclick="abrirModalEvolucion('${personaje.id}')">⚡ EVOLUCIÓN DISPONIBLE</button>` : ''}
+        </div>
+    `;
     
     const tarjetasPersonaje = tarjetasGuardadas.filter(t => t.propietarioId === personaje.id);
     let htmlTarjeta = "";
@@ -365,27 +405,24 @@ function abrirModal(personaje) {
 
     detalle.innerHTML = `
         <div class="detalle-modal">
-            <img src="${personaje.imagen}" alt="${personaje.nombre}" class="detalle-imagen">
+            <div class="detalle-visual">
+                <img src="${personaje.imagen}" alt="${personaje.nombre}" class="detalle-imagen">
+                ${accionesDisponibles}
+            </div>
             <div class="detalle-info">
                 <h2>${personaje.nombre}</h2>
-            ${generarEtiquetasTipo(personaje.tipo)}
-            <p class="historia-personaje modal-historia">${personaje.historia}</p>
+                <div class="tipo-personaje-modal">
+                    ${generarEtiquetasTipo(personaje.tipo)}
+                </div>
+                <p class="historia-personaje modal-historia">${personaje.historia}</p>
                 <div class="atributos-personaje">
-                    ${["velocidad", "inteligencia", "fuerza", "defensa", "magia"].map(a => {
-                        const info = getStatInfo(a, stats[a] ?? 0);
-                        return `<p ${info.esEv ? 'class="texto-dorado"' : ''}><strong>${info.nombreDisplay}:</strong> ${info.valorDisplay}</p>`;
-                    }).join("")}
+                    ${["velocidad", "inteligencia", "fuerza", "defensa", "magia"].map(a => generarBarraAtributo(a, stats[a] ?? 0)).join("")}
                 </div>
                 ${htmlTarjeta}
-               <div style="margin-top: 15px; border-top: 1px solid #333; padding-top: 10px;">
-                    <p>
-                        <span style="color: #88ff88; font-weight: bold;">+ Puntos Positivos:</span> ${personaje.puntosPositivos ?? 0}
-                        ${((personaje.puntosPositivos || 0) + (personaje.puntosNegativos || 0)) >= 25 ? `<button id="btn-evolucion-pendiente" onclick="abrirModalEvolucion('${personaje.id}')" style="margin-left: 10px; background: #ffcc00; color: #111; border: none; padding: 4px 8px; font-weight: bold; cursor: pointer; border-radius: 4px;">EVOLUCIÓN PENDIENTE</button>` : ''}
-                    </p>
-                    <p><span style="color: #ff8888; font-weight: bold;">- Puntos Negativos:</span> ${personaje.puntosNegativos ?? 0}</p>
-                    <p>
-                        <span style="color: #88c0d0; font-weight: bold;">Duelos Librados:</span> ${personaje.duelos ?? 0}
-${(personaje.duelos || 0) >= 15 ? `<button id="btn-tarjeta-disponible" onclick="abrirModalTarjetaHistoria('${personaje.id}')" style="margin-left: 10px; background: #88c0d0; color: #111; border: none; padding: 4px 8px; font-weight: bold; cursor: pointer; border-radius: 4px;">TARJETA DISPONIBLE</button>` : ''}                    </p>
+               <div class="resumen-personaje">
+                    <p><span class="puntos-positivos">+ Puntos Positivos:</span> ${personaje.puntosPositivos ?? 0}</p>
+                    <p><span class="puntos-negativos">- Puntos Negativos:</span> ${personaje.puntosNegativos ?? 0}</p>
+                    <p><span class="duelos-librados">Duelos Librados:</span> ${personaje.duelos ?? 0}</p>
                 </div>
             </div>
         </div>

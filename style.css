@@ -931,88 +931,179 @@ body {
     overflow-y: auto;
 }
 
-
-/* --- Perfiles y colores de tarjetas de historia --- */
-.tipo-tarjeta { background-color: #64748b; }
-.tipo-arma { background-color: #b45309; }
-.tipo-armadura { background-color: #92400e; }
-.tipo-reliquia { background-color: #a16207; }
-.tipo-montura { background-color: #ca8a04; color: #111; }
-.tipo-conocimiento { background-color: #0e7490; }
-.tipo-consumible { background-color: #16a34a; }
-.tipo-aliado { background-color: #15803d; }
-.tipo-rival { background-color: #b91c1c; }
-.tipo-pareja, .tipo-amor { background-color: #db2777; }
-.tipo-odio { background-color: #7f1d1d; }
-.tipo-territorio { background-color: #047857; }
-.tipo-campo-de-fuerza { background-color: #0891b2; }
-.tipo-debilidad { background-color: #9333ea; }
-.tipo-miedo { background-color: #581c87; }
-.tipo-inmunidad { background-color: #2563eb; }
-.tipo-mutacion { background-color: #65a30d; }
-.tipo-enfermedad { background-color: #4d7c0f; }
-.tipo-venganza { background-color: #dc2626; }
-.tipo-mision { background-color: #0284c7; }
-.tipo-deuda { background-color: #475569; }
-.tipo-maldicion { background-color: #312e81; }
-.tipo-bendicion { background-color: #facc15; color: #111; }
-.tipo-plan { background-color: #7c2d12; }
-.tipo-poder { background-color: #c026d3; }
-
-.tarjeta-mini .contenedor-tipos,
-.tarjeta-personaje > .contenedor-tipos {
-    justify-content: center;
-    margin-top: 0;
-}
-
-.tarjeta-mini .etiqueta-tipo,
-.tarjeta-personaje > .contenedor-tipos .etiqueta-tipo {
-    font-size: 10px;
-    max-width: 100%;
+/* --- Mejoras del perfil de personaje --- */
+#modal-personaje {
+    padding: 24px;
     overflow: hidden;
-    text-overflow: ellipsis;
 }
 
-.modal-perfil-tarjeta {
-    max-width: 900px;
-}
-
-.bloque-descripcion-tarjeta {
-    background-color: #1a1a1a;
-    padding: 15px;
-    border-radius: 6px;
-    border: 1px solid #333;
-    margin-bottom: 15px;
-}
-
-.tarjeta-asociada-personaje {
-    flex: 1;
-    min-width: 170px;
-    cursor: pointer;
-    border: 1px solid #d97706;
-    padding: 10px;
-    border-radius: 6px;
-    background: rgba(217, 119, 6, 0.1);
+#modal-personaje .modal-contenido {
+    width: min(960px, 94vw);
+    height: min(760px, 92vh);
+    margin: 4vh auto;
+    overflow: hidden;
     display: flex;
     flex-direction: column;
-    align-items: flex-start;
-    gap: 6px;
-    text-align: left;
-    text-transform: none;
-    letter-spacing: normal;
 }
 
-.tarjeta-asociada-personaje:hover {
-    background: rgba(217, 119, 6, 0.3);
+#detalle-personaje {
+    min-height: 0;
+    overflow-y: auto;
+    padding-right: 8px;
 }
 
-.tarjeta-asociada-titulo {
-    color: #f59e0b;
-    font-size: 14px;
+.detalle-modal {
+    min-height: 0;
+}
+
+.detalle-visual {
+    width: 45%;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    min-width: 260px;
+}
+
+.detalle-visual .detalle-imagen {
+    width: 100%;
+}
+
+.tipo-personaje-modal .contenedor-tipos {
+    gap: 8px;
+    margin-bottom: 4px;
+}
+
+.tipo-personaje-modal .etiqueta-tipo {
+    padding: 7px 12px;
+    border: 1px solid rgba(255, 255, 255, 0.45);
+    border-radius: 999px;
+    box-shadow: 0 0 14px currentColor, inset 0 1px 0 rgba(255, 255, 255, 0.28);
+    font-size: 13px;
+    letter-spacing: 1.4px;
+}
+
+.atributos-personaje {
+    grid-template-columns: 1fr;
+    gap: 10px;
+    border: 1px solid #2f3440;
+}
+
+.atributo-medidor {
+    padding: 9px 10px;
+    background: linear-gradient(90deg, color-mix(in srgb, var(--color-atributo) 18%, #121217), #171720);
+    border: 1px solid color-mix(in srgb, var(--color-atributo) 58%, #20202a);
+    border-radius: 8px;
+    box-shadow: inset 0 0 16px rgba(0, 0, 0, 0.35), 0 0 12px color-mix(in srgb, var(--color-atributo) 20%, transparent);
+}
+
+.atributo-medidor-encabezado {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 6px;
+}
+
+.atributo-medidor-nombre,
+.atributo-medidor-valor {
+    color: var(--color-atributo);
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    text-shadow: 0 0 8px color-mix(in srgb, var(--color-atributo) 65%, transparent);
+}
+
+.atributo-medidor-valor {
+    color: #ffffff;
+    font-size: 15px;
+}
+
+.atributo-barra {
+    height: 12px;
+    overflow: hidden;
+    background: #08080c;
+    border: 1px solid color-mix(in srgb, var(--color-atributo) 65%, #111);
+    border-radius: 999px;
+}
+
+.atributo-barra span {
+    display: block;
+    height: 100%;
+    min-width: 4px;
+    background: linear-gradient(90deg, var(--color-atributo), #ffffff);
+    border-radius: inherit;
+    box-shadow: 0 0 12px var(--color-atributo);
+}
+
+.atributo-medidor-medida {
+    display: block;
+    margin-top: 4px;
+    color: #cfd7e6;
+    font-size: 11px;
+    text-align: right;
+}
+
+.acciones-personaje {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.boton-alerta-personaje {
+    width: 100%;
+    padding: 13px 14px;
+    border-radius: 10px;
+    font-size: 15px;
+    letter-spacing: 1.5px;
+    animation: pulso-alerta-personaje 1.8s ease-in-out infinite;
+}
+
+.boton-alerta-tarjeta {
+    background: linear-gradient(135deg, #d9f99d, #22d3ee 45%, #0f766e);
+    border: 2px solid #cffafe;
+    color: #061014;
+    text-shadow: none;
+}
+
+.boton-alerta-evolucion {
+    background: linear-gradient(135deg, #fde68a, #f59e0b 48%, #7c2d12);
+    border: 2px solid #fef3c7;
+    color: #171000;
+    text-shadow: none;
+}
+
+.resumen-personaje {
+    margin-top: 15px;
+    border-top: 1px solid #333;
+    padding-top: 10px;
+}
+
+.duelos-librados {
+    color: #88c0d0;
     font-weight: bold;
 }
 
-.tarjeta-asociada-efectos {
-    color: #eeeeee;
-    font-size: 12px;
+@keyframes pulso-alerta-personaje {
+    0%, 100% { transform: translateY(0) scale(1); box-shadow: 0 0 14px rgba(255, 255, 255, 0.25); }
+    50% { transform: translateY(-2px) scale(1.03); box-shadow: 0 0 28px rgba(255, 255, 255, 0.48); }
+}
+
+@media (max-width: 760px) {
+    #modal-personaje .modal-contenido {
+        height: 94vh;
+        margin: 2vh auto;
+    }
+
+    .detalle-modal {
+        flex-direction: column;
+    }
+
+    .detalle-visual,
+    .detalle-info {
+        width: 100%;
+    }
+
+    .detalle-imagen {
+        max-height: 320px;
+    }
 }
