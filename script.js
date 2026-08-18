@@ -65,7 +65,7 @@ function mostrarTarjetas(lista) {
         div.innerHTML = `
             <h3 class="titulo-carta">${tarjeta.nombre}</h3>
             <img src="${tarjeta.imagen || ''}" alt="${tarjeta.nombre}" class="imagen-personaje">
-            <span class="tipo-personaje" style="font-size: 10px; text-align: center; display: block; margin-top: 2px; font-weight: bold; color: #88c0d0;">[ ${tarjeta.tipo || 'Tarjeta'} ]</span>
+            ${generarEtiquetasTipo(tarjeta.tipo || 'Tarjeta')}
         `;
         contenedorGrid.appendChild(div);
     });
@@ -74,6 +74,7 @@ function mostrarTarjetas(lista) {
 function abrirModalTarjeta(tarjeta) {
     const modal = document.getElementById("modal-detalle-tarjeta");
     const detalle = document.getElementById("contenido-detalle-tarjeta");
+    if (!modal || !detalle) return;
     
     let efectosHtml = "";
     if (tarjeta.efectos && tarjeta.efectos.length > 0) {
@@ -98,10 +99,8 @@ function abrirModalTarjeta(tarjeta) {
             <img src="${tarjeta.imagen || ''}" alt="${tarjeta.nombre}" class="detalle-imagen">
             <div class="detalle-info">
                 <h2>${tarjeta.nombre}</h2>
-                <div class="contenedor-tipos" style="margin-top: -10px; margin-bottom: 10px;">
-                    <span class="etiqueta-tipo tipo-portador">${tarjeta.tipo || 'Tarjeta'}</span>
-                </div>
-                <div style="background-color: #1a1a1a; padding: 15px; border-radius: 6px; border: 1px solid #333; margin-bottom: 15px;">
+                ${generarEtiquetasTipo(tarjeta.tipo || 'Tarjeta')}
+                <div class="bloque-descripcion-tarjeta">
                     <p style="color: #cccccc; font-size: 14px; font-style: italic; margin: 0; line-height: 1.5;">"${tarjeta.descripcion || 'Sin descripción detallada.'}"</p>
                 </div>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
@@ -122,7 +121,19 @@ function abrirModalTarjeta(tarjeta) {
 }
 
 function cerrarModalTarjetaDetalle() {
-    document.getElementById("modal-detalle-tarjeta").style.display = "none";
+    const modalTarjeta = document.getElementById("modal-detalle-tarjeta");
+    if (modalTarjeta) {
+        modalTarjeta.style.display = "none";
+    }
+}
+
+const modalDetalleTarjeta = document.getElementById("modal-detalle-tarjeta");
+if (modalDetalleTarjeta) {
+    modalDetalleTarjeta.addEventListener("click", (event) => {
+        if (event.target === modalDetalleTarjeta) {
+            cerrarModalTarjetaDetalle();
+        }
+    });
 }
 function guardarTarjetaEquipamiento() {
     const tipo = document.getElementById("tipo-tarjeta-equipamiento").value;
@@ -320,7 +331,7 @@ function mostrarPersonajes(lista) {
         tarjeta.innerHTML = `
             <h3 class="titulo-carta">${personaje.nombre}</h3>
             <img src="${personaje.imagen}" alt="${personaje.nombre}" class="imagen-personaje">
-            <span class="tipo-personaje">[ ${personaje.tipo} ]</span>
+            ${generarEtiquetasTipo(personaje.tipo)}
         `;
         contenedorGrid.appendChild(tarjeta);
     });
@@ -382,10 +393,11 @@ function abrirModal(personaje) {
                 efectosTexto = tarjeta.efectos.map(e => `${e.atributo.toUpperCase()}: ${e.modificacion > 0 ? '+' : ''}${e.modificacion}`).join(", ");
             }
             htmlTarjeta += `
-                <div onclick="abrirModalTarjetaPorId('${tarjeta.idTarjeta}')" style="flex: 1; min-width: 150px; cursor: pointer; border: 1px solid #d97706; padding: 10px; border-radius: 4px; background-color: rgba(217, 119, 6, 0.1);" onmouseover="this.style.backgroundColor='rgba(217, 119, 6, 0.3)'" onmouseout="this.style.backgroundColor='rgba(217, 119, 6, 0.1)'">
-                    <h4 style="color: #f59e0b; margin-bottom: 5px; font-size: 14px;">🗡️ ${tarjeta.nombre} (${tarjeta.tipo})</h4>
-                    <p style="font-size: 12px; color: #eeeeee; margin: 0;"><strong>Efectos:</strong> ${efectosTexto}</p>
-                </div>
+                <button type="button" onclick="abrirModalTarjetaPorId('${tarjeta.idTarjeta}')" class="tarjeta-asociada-personaje">
+                    <span class="tarjeta-asociada-titulo">🗡️ ${tarjeta.nombre}</span>
+                    ${generarEtiquetasTipo(tarjeta.tipo || 'Tarjeta')}
+                    <span class="tarjeta-asociada-efectos"><strong>Efectos:</strong> ${efectosTexto}</span>
+                </button>
             `;
         });
         htmlTarjeta += `</div>`;
