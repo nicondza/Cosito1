@@ -930,3 +930,89 @@ body {
     max-height: 85vh;
     overflow-y: auto;
 }
+
+
+/* --- Perfiles y colores de tarjetas de historia --- */
+.tipo-tarjeta { background-color: #64748b; }
+.tipo-arma { background-color: #b45309; }
+.tipo-armadura { background-color: #92400e; }
+.tipo-reliquia { background-color: #a16207; }
+.tipo-montura { background-color: #ca8a04; color: #111; }
+.tipo-conocimiento { background-color: #0e7490; }
+.tipo-consumible { background-color: #16a34a; }
+.tipo-aliado { background-color: #15803d; }
+.tipo-rival { background-color: #b91c1c; }
+.tipo-pareja, .tipo-amor { background-color: #db2777; }
+.tipo-odio { background-color: #7f1d1d; }
+.tipo-territorio { background-color: #047857; }
+.tipo-campo-de-fuerza { background-color: #0891b2; }
+.tipo-debilidad { background-color: #9333ea; }
+.tipo-miedo { background-color: #581c87; }
+.tipo-inmunidad { background-color: #2563eb; }
+.tipo-mutacion { background-color: #65a30d; }
+.tipo-enfermedad { background-color: #4d7c0f; }
+.tipo-venganza { background-color: #dc2626; }
+.tipo-mision { background-color: #0284c7; }
+.tipo-deuda { background-color: #475569; }
+.tipo-maldicion { background-color: #312e81; }
+.tipo-bendicion { background-color: #facc15; color: #111; }
+.tipo-plan { background-color: #7c2d12; }
+.tipo-poder { background-color: #c026d3; }
+
+.tarjeta-mini .contenedor-tipos,
+.tarjeta-personaje > .contenedor-tipos {
+    justify-content: center;
+    margin-top: 0;
+}
+
+.tarjeta-mini .etiqueta-tipo,
+.tarjeta-personaje > .contenedor-tipos .etiqueta-tipo {
+    font-size: 10px;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.modal-perfil-tarjeta {
+    max-width: 900px;
+}
+
+.bloque-descripcion-tarjeta {
+    background-color: #1a1a1a;
+    padding: 15px;
+    border-radius: 6px;
+    border: 1px solid #333;
+    margin-bottom: 15px;
+}
+
+.tarjeta-asociada-personaje {
+    flex: 1;
+    min-width: 170px;
+    cursor: pointer;
+    border: 1px solid #d97706;
+    padding: 10px;
+    border-radius: 6px;
+    background: rgba(217, 119, 6, 0.1);
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    text-align: left;
+    text-transform: none;
+    letter-spacing: normal;
+}
+
+.tarjeta-asociada-personaje:hover {
+    background: rgba(217, 119, 6, 0.3);
+}
+
+.tarjeta-asociada-titulo {
+    color: #f59e0b;
+    font-size: 14px;
+    font-weight: bold;
+}
+
+.tarjeta-asociada-efectos {
+    color: #eeeeee;
+    font-size: 12px;
+}
