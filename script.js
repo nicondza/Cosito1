@@ -314,6 +314,8 @@ async function cargarPersonajes() {
         const respuesta = await fetch("personajes.json");
         personajes = await respuesta.json();
         mostrarPersonajes(personajes);
+        mostrarMazosGuardados();
+        mostrarMazosParaBatalla();
     } catch (error) {
         console.error("Error al cargar el archivo de personajes:", error);
     }
@@ -440,6 +442,7 @@ window.onclick = (event) => {
 cargarPersonajes();
 let mazosGuardados = [];
 let mazoActual = [];
+let indiceMazoEditando = null;
 const MAX_CARTAS = 50;
 
 const modalMazo = document.getElementById("modal-nuevo-mazo");
@@ -463,17 +466,102 @@ async function cargarMazos() {
     }
 }
 
+function obtenerPersonajesDelMazo(mazoIds) {
+    return mazoIds.map(id => personajes.find(p => p.id === id)).filter(Boolean);
+}
+
+function crearVistaTarjetaMazo(mazoIds, index, opciones = {}) {
+    const { permitirAcciones = true, onSeleccionar = null } = opciones;
+    const personajesMazo = obtenerPersonajesDelMazo(mazoIds);
+    const divMazo = document.createElement("article");
+    divMazo.className = "item-mazo tarjeta-mazo";
+    divMazo.tabIndex = 0;
+
+    const vistaPrevia = personajesMazo.slice(0, 6).map(personaje => `
+        <div class="miniatura-mazo">
+            <img src="${personaje.imagen}" alt="${personaje.nombre}">
+            <span>${personaje.nombre}</span>
+        </div>
+    `).join("");
+
+    const faltantes = Math.max(0, mazoIds.length - personajesMazo.length);
+    const textoFaltantes = faltantes > 0 ? `<p class="mazo-aviso">${faltantes} carta(s) no encontradas en personajes.json.</p>` : "";
+
+    divMazo.innerHTML = `
+        <div class="mazo-cabecera">
+            <div>
+                <h3>Mazo ${index + 1}</h3>
+                <p>${mazoIds.length} carta(s) seleccionadas</p>
+            </div>
+            <span class="mazo-contador">${mazoIds.length}/${MAX_CARTAS}</span>
+        </div>
+        <div class="mazo-vista-previa">${vistaPrevia || '<p class="mazo-vacio">Sin cartas visibles</p>'}</div>
+        ${textoFaltantes}
+        <div class="mazo-detalle" hidden>
+            <h4>Cartas del mazo</h4>
+            <div class="mazo-cartas-lista"></div>
+        </div>
+        ${permitirAcciones ? `
+            <div class="mazo-acciones">
+                <button type="button" class="btn-editar-mazo">Editar</button>
+                <button type="button" class="btn-eliminar-mazo">Eliminar</button>
+            </div>
+        ` : '<p class="ayuda-mazo-batalla">Haz clic de nuevo para usar este mazo en batalla.</p>'}
+    `;
+
+    const detalle = divMazo.querySelector(".mazo-detalle");
+    const listaDetalle = divMazo.querySelector(".mazo-cartas-lista");
+    listaDetalle.append(...personajesMazo.map(crearTarjetaMini));
+    detalle.addEventListener("click", event => event.stopPropagation());
+
+    const alternarDetalle = () => {
+        const estaAbierto = !detalle.hidden;
+        document.querySelectorAll(".mazo-detalle").forEach(panel => panel.hidden = true);
+        detalle.hidden = estaAbierto;
+    };
+
+    divMazo.addEventListener("click", () => {
+        if (!permitirAcciones && !detalle.hidden && typeof onSeleccionar === "function") {
+            onSeleccionar(mazoIds);
+            return;
+        }
+        alternarDetalle();
+    });
+    divMazo.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            divMazo.click();
+        }
+    });
+
+    if (permitirAcciones) {
+        divMazo.querySelector(".btn-editar-mazo").addEventListener("click", (event) => {
+            event.stopPropagation();
+            editarMazo(index);
+        });
+        divMazo.querySelector(".btn-eliminar-mazo").addEventListener("click", (event) => {
+            event.stopPropagation();
+            eliminarMazo(index);
+        });
+    }
+
+    return divMazo;
+}
+
 function mostrarMazosGuardados() {
     listaMazosContenedor.innerHTML = "";
+    if (mazosGuardados.length === 0) {
+        listaMazosContenedor.innerHTML = '<p class="mazo-vacio">No hay mazos guardados todavía.</p>';
+        return;
+    }
+
     mazosGuardados.forEach((mazo, index) => {
-        const divMazo = document.createElement("div");
-        divMazo.className = "item-mazo";
-        divMazo.innerHTML = `<h3>Mazo ${index + 1} - (${mazo.length} Cartas)</h3>`;
-        listaMazosContenedor.appendChild(divMazo);
+        listaMazosContenedor.appendChild(crearVistaTarjetaMazo(mazo, index));
     });
 }
 
 btnNuevoMazo.addEventListener("click", () => {
+    indiceMazoEditando = null;
     mazoActual = [];
     actualizarInterfazConstructor();
     modalMazo.style.display = "block";
@@ -541,6 +629,34 @@ function quitarDelMazo(personaje) {
     actualizarInterfazConstructor();
 }
 
+function descargarMazosActualizados() {
+    const blob = new Blob([JSON.stringify(mazosGuardados, null, 4)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+
+    a.href = url;
+    a.download = "mazos.json";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+
+function editarMazo(index) {
+    indiceMazoEditando = index;
+    mazoActual = obtenerPersonajesDelMazo(mazosGuardados[index]);
+    actualizarInterfazConstructor();
+    modalMazo.style.display = "block";
+}
+
+function eliminarMazo(index) {
+    if (!confirm(`¿Eliminar el Mazo ${index + 1}?`)) return;
+    mazosGuardados.splice(index, 1);
+    descargarMazosActualizados();
+    mostrarMazosGuardados();
+    mostrarMazosParaBatalla();
+}
+
 btnGuardarMazo.addEventListener("click", () => {
     if (mazoActual.length === 0) {
         alert("El mazo está vacío. Agrega personajes antes de guardar.");
@@ -548,20 +664,16 @@ btnGuardarMazo.addEventListener("click", () => {
     }
     
     const nuevoMazoIds = mazoActual.map(p => p.id);
-    mazosGuardados.push(nuevoMazoIds);
-    
-    const blob = new Blob([JSON.stringify(mazosGuardados, null, 4)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    
-    a.href = url;
-    a.download = "mazos.json";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    
+    if (indiceMazoEditando === null) {
+        mazosGuardados.push(nuevoMazoIds);
+    } else {
+        mazosGuardados[indiceMazoEditando] = nuevoMazoIds;
+    }
+
+    descargarMazosActualizados();
+    indiceMazoEditando = null;
     mostrarMazosGuardados();
+    mostrarMazosParaBatalla();
     modalMazo.style.display = "none";
 });
 
@@ -603,11 +715,10 @@ function mostrarMazosParaBatalla() {
     }
 
     mazosGuardados.forEach((mazoIds, index) => {
-        const divMazo = document.createElement("div");
-        divMazo.className = "item-mazo tarjeta-mazo-batalla";
-        divMazo.innerHTML = `<h3>Mazo ${index + 1} - (${mazoIds.length} Cartas)</h3>`;
-        divMazo.onclick = () => seleccionarMazoBatalla(mazoIds);
-        listaMazosBatalla.appendChild(divMazo);
+        listaMazosBatalla.appendChild(crearVistaTarjetaMazo(mazoIds, index, {
+            permitirAcciones: false,
+            onSeleccionar: seleccionarMazoBatalla
+        }));
     });
 }
 
