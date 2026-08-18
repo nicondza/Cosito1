@@ -290,15 +290,112 @@ body {
     background-color: #5a4023;
 }
 #lista-mazos {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 18px;
 }
 .item-mazo {
     background-color: #1a1a1a;
-    padding: 15px;
+    padding: 18px;
     border: 1px solid #333;
+    border-radius: 10px;
+}
+.tarjeta-mazo {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    cursor: pointer;
+    min-height: 260px;
+}
+.tarjeta-mazo:focus-visible {
+    outline: 3px solid #88c0d0;
+    outline-offset: 3px;
+}
+.mazo-cabecera {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    align-items: flex-start;
+}
+.mazo-cabecera h3 {
+    margin-bottom: 6px;
+    text-align: left;
+}
+.mazo-cabecera p, .ayuda-mazo-batalla, .mazo-vacio, .mazo-aviso {
+    color: #aaaaaa;
+    font-size: 14px;
+}
+.mazo-contador {
+    background: rgba(136, 192, 208, 0.15);
+    border: 1px solid #88c0d0;
+    border-radius: 999px;
+    color: #88c0d0;
+    font-weight: bold;
+    padding: 5px 10px;
+    white-space: nowrap;
+}
+.mazo-vista-previa {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+}
+.miniatura-mazo {
+    background: rgba(0, 0, 0, 0.28);
+    border: 1px solid #3a4252;
     border-radius: 6px;
+    overflow: hidden;
+    min-height: 118px;
+}
+.miniatura-mazo img {
+    width: 100%;
+    height: 82px;
+    object-fit: contain;
+    background: #0b0b0f;
+    display: block;
+}
+.miniatura-mazo span {
+    display: block;
+    font-size: 11px;
+    padding: 4px;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.mazo-detalle {
+    border-top: 1px solid #333;
+    padding-top: 12px;
+}
+.mazo-detalle h4 {
+    color: #88c0d0;
+    margin-bottom: 10px;
+}
+.mazo-cartas-lista {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+    gap: 8px;
+    max-height: 420px;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+.mazo-cartas-lista .tarjeta-personaje {
+    cursor: default;
+}
+.mazo-acciones {
+    display: flex;
+    gap: 10px;
+    margin-top: auto;
+}
+.mazo-acciones button {
+    flex: 1;
+    padding: 8px 12px;
+}
+.btn-eliminar-mazo {
+    border-color: #8b2f2f;
+    color: #ffd6d6;
+}
+.mazo-aviso {
+    color: #ffcc66;
 }
 .modal-contenido-mazo {
     background-color: #242424;
@@ -366,9 +463,9 @@ body {
     aspect-ratio: 2.5 / 3.6;
 }
 .lista-mazos-grid {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 18px;
     margin-top: 15px;
 }
 
