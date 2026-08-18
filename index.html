@@ -1,1016 +1,708 @@
 <!DOCTYPE html>
-<html lang="es" class="dark">
+<html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RPG Card Battler</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    colors: {
-                        dark: '#121212',
-                        darker: '#0a0a0a',
-                        card: '#1e1e1e',
-                        primary: '#6366f1',
-                        danger: '#ef4444',
-                        success: '#10b981'
-                    },
-                    fontFamily: {
-                        sans: ['Inter', 'sans-serif'],
-                    }
-                }
-            }
-        }
-    </script>
+    <title>Bestiario</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<title>Bestiario</title>
+    <link rel="stylesheet" href="style.css">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800&family=Rajdhani:wght@500;700&display=swap');
         
-        body { font-family: 'Inter', sans-serif; background-color: var(--tw-colors-darker); color: #e5e5e5; }
-        
-        /* Custom Scrollbar */
-        ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-track { background: #1a1a1a; }
-        ::-webkit-scrollbar-thumb { background: #4a4a4a; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: #6366f1; }
-
-        /* Card Flip Utilities */
-        .perspective-1000 { perspective: 1000px; }
-        .transform-style-3d { transform-style: preserve-3d; }
-        .backface-hidden { backface-visibility: hidden; }
-        .rotate-y-180 { transform: rotateY(180deg); }
-        .transition-transform-duration { transition: transform 0.6s cubic-bezier(0.4, 0.2, 0.2, 1); }
-        
-        .card-container { width: 100%; height: 320px; cursor: pointer; }
-        .card-flipper { position: relative; width: 100%; height: 100%; }
-        .card-front, .card-back {
-            position: absolute; width: 100%; height: 100%; border-radius: 0.75rem;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
+        body {
+            background: radial-gradient(circle at center, #1a1a24 0%, #08080c 100%);
+            color: #e0e0e0;
+            font-family: 'Rajdhani', sans-serif;
         }
-        .card-back { background-image: repeating-linear-gradient(45deg, #1f2937 25%, transparent 25%, transparent 75%, #1f2937 75%, #1f2937), repeating-linear-gradient(45deg, #1f2937 25%, #111827 25%, #111827 75%, #1f2937 75%, #1f2937); background-position: 0 0, 10px 10px; background-size: 20px 20px; border: 2px solid #374151; display: flex; align-items: center; justify-content: center; font-size: 2rem; }
-        
-        .flipped .card-flipper { transform: rotateY(180deg); }
-        .card-front { transform: rotateY(180deg); } /* Front is initially rotated so Back shows first in battle */
-        .card-back { transform: rotateY(0deg); }
 
-        /* General Character Card UI */
-        .char-card { transition: all 0.2s ease; }
-        .char-card:hover { transform: translateY(-5px); box-shadow: 0 10px 15px -3px rgba(99, 102, 241, 0.2); border-color: #6366f1; }
+        h1, h2, h3 {
+            font-family: 'Cinzel', serif;
+            background: linear-gradient(to bottom, #d4af37 0%, #aa7c11 50%, #f3e5ab 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8), 0 0 15px rgba(212, 175, 55, 0.3);
+            letter-spacing: 2px;
+            text-align: center;
+        }
+
+        .encabezado {
+            background: linear-gradient(180deg, #1f1f2e 0%, #11111a 100%);
+            border-bottom: 2px solid #aa7c11;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.1);
+        }
+
+        button {
+            background: linear-gradient(180deg, #3d4554 0%, #262b36 100%);
+            border: 1px solid #5a667a;
+            color: #ffffff;
+            font-family: 'Rajdhani', sans-serif;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border-radius: 4px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.6), inset 0 2px 2px rgba(255,255,255,0.2), inset 0 -2px 5px rgba(0,0,0,0.6);
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            text-shadow: 1px 1px 2px black;
+        }
+
+        button:hover:not(:disabled) {
+            background: linear-gradient(180deg, #4d5768 0%, #323846 100%);
+            border-color: #88c0d0;
+            box-shadow: 0 0 15px rgba(136, 192, 208, 0.6), inset 0 2px 2px rgba(255,255,255,0.3);
+            transform: translateY(-2px);
+            color: #fff;
+        }
+
+        button:active:not(:disabled) {
+            transform: translateY(1px);
+            box-shadow: inset 0 3px 8px rgba(0,0,0,0.9);
+        }
+
+        button.activo {
+            background: linear-gradient(180deg, #5c4412 0%, #3a2b0a 100%);
+            border-color: #d4af37;
+            box-shadow: 0 0 10px rgba(212, 175, 55, 0.5), inset 0 2px 2px rgba(255,255,255,0.2);
+        }
+
+        .modal-contenido, .modal-contenido-mazo, .modal-historia-tarjetas {
+            background: linear-gradient(135deg, #1c1c24 0%, #121217 100%);
+            border: 2px solid #3d4554;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.95), inset 0 0 30px rgba(136, 192, 208, 0.05);
+            border-radius: 8px;
+            position: relative;
+        }
         
-        .modal-overlay { background: rgba(0,0,0,0.8); backdrop-filter: blur(4px); }
-        .silhouette { background: radial-gradient(circle at 50% 22%, #4b5563 0 13%, transparent 14%), radial-gradient(circle at 50% 82%, #374151 0 34%, transparent 35%), linear-gradient(135deg, #111827, #1f2937); }
-        .hidden { display: none !important; }
+        .modal-contenido::after, .modal-contenido-mazo::after {
+            content: '';
+            position: absolute;
+            top: -2px; left: -2px; right: -2px; bottom: -2px;
+            background: linear-gradient(45deg, #d4af37, transparent, #88c0d0, transparent, #d4af37);
+            z-index: -1;
+            filter: blur(6px);
+            opacity: 0.6;
+            border-radius: 10px;
+            pointer-events: none;
+        }
+
+        .tarjeta-personaje, .tarjeta-mini, .item-mazo {
+            background: linear-gradient(180deg, #2a2a35 0%, #181820 100%);
+            border: 1px solid #4a4a5a;
+            border-radius: 8px;
+            box-shadow: 0 8px 15px rgba(0,0,0,0.8), inset 0 2px 2px rgba(255,255,255,0.05);
+            transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+            overflow: hidden;
+        }
+
+        .tarjeta-personaje:hover, .item-mazo:hover {
+            transform: translateY(-6px) scale(1.02);
+            border-color: #d4af37;
+            box-shadow: 0 15px 25px rgba(0,0,0,0.9), 0 0 20px rgba(212, 175, 55, 0.3);
+        }
+
+        input[type="text"], input[type="number"], textarea, select {
+            background: #0b0b0f;
+            border: 1px solid #3a4252;
+            color: #88c0d0;
+            border-radius: 4px;
+            box-shadow: inset 0 3px 6px rgba(0,0,0,0.8);
+            transition: border-color 0.3s, box-shadow 0.3s;
+            font-family: 'Rajdhani', sans-serif;
+        }
+
+        input:focus, textarea:focus, select:focus {
+            outline: none;
+            border-color: #88c0d0;
+            box-shadow: inset 0 3px 6px rgba(0,0,0,0.8), 0 0 10px rgba(136, 192, 208, 0.4);
+        }
+
+        .casillero {
+            background: linear-gradient(145deg, #1f1f2a, #0f0f15);
+            border: 1px solid #333;
+            border-radius: 4px;
+            box-shadow: inset 2px 2px 5px rgba(255,255,255,0.03), inset -3px -3px 10px rgba(0,0,0,0.8);
+            transition: all 0.3s;
+        }
+        
+        .casillero.brillando {
+            background: linear-gradient(145deg, #3a2e12, #1a1508);
+            border-color: #d4af37;
+            color: #fff;
+            text-shadow: 0 0 5px #d4af37;
+            box-shadow: 0 0 15px rgba(212, 175, 55, 0.6), inset 0 0 10px rgba(212, 175, 55, 0.3);
+        }
+
+        .sector {
+            background: rgba(15, 15, 22, 0.85);
+            border: 1px solid #2a2a35;
+            box-shadow: inset 0 0 25px rgba(0,0,0,0.9);
+            border-radius: 6px;
+        }
+
+        ::-webkit-scrollbar {
+            width: 10px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0b0b0f;
+            border-left: 1px solid #2a2a35;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: linear-gradient(180deg, #4a4a5a, #2a2a35);
+            border: 1px solid #5a667a;
+            border-radius: 5px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(180deg, #88c0d0, #3d4554);
+        }
     </style>
 </head>
-<body class="bg-darker min-h-screen text-gray-200">
-
-    <nav class="bg-card border-b border-gray-800 sticky top-0 z-40">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex items-center justify-between h-16">
-                <div class="flex-shrink-0 flex items-center gap-2">
-                    <span class="text-2xl">⚔️</span>
-                    <span class="font-bold text-xl tracking-wider bg-clip-text text-transparent bg-gradient-to-r from-primary to-purple-500">NEXUS RPG</span>
-                </div>
-                <div class="flex space-x-4">
-                    <button id="nav-management" class="text-white bg-gray-800 hover:bg-gray-700 px-3 py-2 rounded-md text-sm font-medium transition" onclick="switchTab('management')">Gestión de Personajes</button>
-                    <button id="nav-battle" class="text-gray-300 hover:bg-gray-700 px-3 py-2 rounded-md text-sm font-medium transition" onclick="switchTab('battle')">Zona de Batalla</button>
-                </div>
-            </div>
-        </div>
-    </nav>
-
-    <main id="section-management" class="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
-        
-        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-            <div>
-                <h1 class="text-3xl font-bold text-white">Mazo de Personajes</h1>
-                <p class="text-sm text-gray-400 mt-1">Gestiona tu colección desde las cartas; el reclutamiento permanece oculto hasta que lo necesites.</p>
-            </div>
-            <button id="btn-toggle-create" onclick="toggleCreateForm()" class="bg-primary hover:bg-indigo-600 text-white font-bold py-3 px-5 rounded-lg transition shadow-lg shadow-indigo-500/30">+ Nuevo personaje</button>
-        </div>
-
-        <!-- Create Character Form -->
-        <div id="create-char-panel" class="hidden bg-card rounded-xl p-6 shadow-lg border border-gray-800 mb-10">
-            <div class="flex items-center justify-between gap-4 mb-4 border-b border-gray-700 pb-2">
-                <h2 class="text-xl font-bold">Reclutar Nuevo Personaje</h2>
-                <button onclick="toggleCreateForm(false)" class="text-gray-400 hover:text-white text-sm">Ocultar</button>
-            </div>
-            <form id="create-char-form" class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div class="space-y-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-400 mb-1">Nombre</label>
-                        <input type="text" id="char-name" required class="w-full bg-dark border border-gray-700 rounded-lg p-2 text-white focus:outline-none focus:border-primary">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-400 mb-1">URL de Imagen <span class="text-xs text-gray-500">(opcional)</span></label>
-                        <input type="url" id="char-image" placeholder="https://..." class="w-full bg-dark border border-gray-700 rounded-lg p-2 text-white focus:outline-none focus:border-primary">
-                        <p class="text-xs text-gray-500 mt-1">Si no agregas imagen, se mostrará una silueta del personaje.</p>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-400 mb-1">Historia</label>
-                        <textarea id="char-story" required rows="3" class="w-full bg-dark border border-gray-700 rounded-lg p-2 text-white focus:outline-none focus:border-primary"></textarea>
-                    </div>
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-400 mb-2">Atributos Base (1 - 100)</label>
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-xs text-blue-400 mb-1">Inteligencia</label>
-                            <input type="number" id="char-int" required min="1" max="100" value="50" class="w-full bg-dark border border-gray-700 rounded-lg p-2 text-white focus:outline-none focus:border-blue-500">
-                        </div>
-                        <div>
-                            <label class="block text-xs text-red-400 mb-1">Fuerza</label>
-                            <input type="number" id="char-str" required min="1" max="100" value="50" class="w-full bg-dark border border-gray-700 rounded-lg p-2 text-white focus:outline-none focus:border-red-500">
-                        </div>
-                        <div>
-                            <label class="block text-xs text-yellow-400 mb-1">Velocidad</label>
-                            <input type="number" id="char-spd" required min="1" max="100" value="50" class="w-full bg-dark border border-gray-700 rounded-lg p-2 text-white focus:outline-none focus:border-yellow-500">
-                        </div>
-                        <div>
-                            <label class="block text-xs text-purple-400 mb-1">Magia</label>
-                            <input type="number" id="char-mag" required min="1" max="100" value="50" class="w-full bg-dark border border-gray-700 rounded-lg p-2 text-white focus:outline-none focus:border-purple-500">
-                        </div>
-                    </div>
-                    <button type="submit" class="mt-6 w-full bg-primary hover:bg-indigo-600 text-white font-bold py-3 px-4 rounded-lg transition shadow-lg shadow-indigo-500/30">Crear Personaje</button>
-                </div>
-            </form>
-        </div>
-
-        <!-- Gallery -->
-        <div>
-            <h2 class="text-2xl font-bold mb-6">Personajes <span id="char-count" class="text-sm font-normal text-gray-400 bg-gray-800 py-1 px-2 rounded ml-2">0</span></h2>
-            <div id="char-gallery" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                <!-- Dynamically populated -->
-            </div>
-        </div>
-    </main>
-
-    <main id="section-battle" class="hidden max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
-        <div class="flex flex-col items-center mb-8">
-            <h2 class="text-3xl font-bold text-white mb-2">Arena de Combate</h2>
-            <p class="text-gray-400 mb-6 text-center">Se requieren al menos 8 personajes. Emparejamiento aleatorio por rotación obligatoria.</p>
-            <button id="btn-start-battle" onclick="startBattle()" class="bg-red-600 hover:bg-red-500 text-white font-bold py-3 px-8 rounded-full text-lg transition shadow-[0_0_15px_rgba(220,38,38,0.5)] transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed">
-                Iniciar Batalla 4v4
+<body>
+    <div class="encabezado">
+        <h1>Bestiario</h1>
+        <div class="pestanas">
+            <button data-ventana="galeria">
+                Galería
+            </button>
+            <button data-ventana="mazo">
+                Mazo
+            </button>
+            <button data-ventana="batalla">
+                Batalla
             </button>
         </div>
-
-        <div id="battle-arena" class="hidden flex flex-col gap-8">
-            <!-- Esquina Roja -->
-            <div class="bg-red-950/30 border border-red-900/50 rounded-xl p-6">
-                <h3 class="text-xl font-bold text-red-500 mb-4 text-center">Esquina Roja</h3>
-                <div id="red-corner" class="grid grid-cols-2 md:grid-cols-4 gap-4"></div>
+    </div>
+    <div class="contenidos">
+        <section id="galeria">
+            <h2>Galería</h2>
+            <div class="subpestanas">
+                <button id="btn-sub-personajes" class="activo" onclick="cambiarSubpestana('personajes')">Personajes</button>
+                <button id="btn-sub-tarjetas" onclick="cambiarSubpestana('tarjetas')">Tarjetas</button>
             </div>
-            
-            <!-- VS and Status -->
-            <div class="flex justify-center items-center flex-col gap-2">
-                <div class="w-16 h-16 rounded-full bg-gray-800 flex items-center justify-center font-bold text-2xl border-2 border-gray-600 shadow-xl z-10">VS</div>
-                <div id="battle-log" class="w-full max-w-2xl bg-black/50 p-4 rounded-lg border border-gray-800 text-center text-sm space-y-2 h-32 overflow-y-auto">
-                    <!-- Logs -->
+            <div id="sub-personajes" class="sub-contenido activo">
+            </div>
+            <div id="sub-tarjetas" class="sub-contenido" style="display: none;">
+                <div id="grid-tarjetas-galeria" class="galeria-grid"></div>
+            </div>
+        </section>
+       <section id="mazo">
+            <h2>Mazo</h2>
+            <button id="btn-nuevo-mazo">Nuevo mazo</button>
+            <div id="lista-mazos">
+            </div>
+        </section>
+        <section id="batalla">
+            <h2>Batalla</h2>
+            <div id="pantalla-seleccion-mazo">
+                <h3>Selecciona un Mazo para la Batalla</h3>
+                <div id="lista-mazos-batalla" class="lista-mazos-grid"></div>
+            </div>
+            <div id="pantalla-seleccion-personajes" style="display: none;">
+                <h3>Selecciona 3 Personajes Principales (<span id="contador-principales">0</span>/3)</h3>
+                <div class="acciones-batalla">
+                    <button id="btn-aleatorio-batalla">Elegir Aleatoriamente</button>
+                    <button id="btn-confirmar-principales" disabled>Confirmar Selección</button>
+                    <button id="btn-volver-mazos">Cambiar Mazo</button>
                 </div>
+                <div id="grid-personajes-batalla" class="galeria-grid"></div>
             </div>
-
-            <!-- Esquina Azul -->
-            <div class="bg-blue-950/30 border border-blue-900/50 rounded-xl p-6">
-                <h3 class="text-xl font-bold text-blue-500 mb-4 text-center">Esquina Azul</h3>
-                <div id="blue-corner" class="grid grid-cols-2 md:grid-cols-4 gap-4"></div>
+            <div id="pantalla-batalla-activa" style="display: none;">
+                <h3>Personajes Principales Seleccionados</h3>
+                <div id="contenedor-principales-seleccionados" class="galeria-grid"></div>
             </div>
-            
-            <!-- Resolution Actions -->
-            <div id="battle-actions" class="hidden flex justify-center mt-4">
-                <button onclick="finishBattle()" class="bg-gray-700 hover:bg-gray-600 px-6 py-2 rounded-lg font-bold">Finalizar y Guardar Resultados</button>
-            </div>
+        </section>
+    </div>
+    <div id="modal-personaje" class="modal">
+        <div class="modal-contenido">
+            <span class="cerrar-modal">&times;</span>
+            <div id="detalle-personaje"></div>
         </div>
-    </main>
-
-    <!-- Character Detail / Action Modal -->
-    <div id="char-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 modal-overlay">
-        <div class="bg-card w-full max-w-3xl rounded-xl shadow-2xl border border-gray-700 overflow-hidden flex flex-col max-h-[90vh]">
-            <div class="flex justify-between items-center p-4 border-b border-gray-800 bg-gray-900">
-                <h3 id="modal-name" class="text-xl font-bold"></h3>
-                <button onclick="closeModal()" class="text-gray-400 hover:text-white">&times;</button>
-            </div>
-            <div class="flex-1 overflow-y-auto p-6">
-                <div class="flex flex-col md:flex-row gap-6">
-                    <div class="w-full md:w-1/3">
-                        <img id="modal-img" src="" alt="Avatar" class="w-full h-64 object-cover rounded-lg border border-gray-700 shadow-md">
-                        <div class="mt-4 bg-gray-800 rounded p-3 text-center">
-                            <span class="block text-xs text-gray-400 uppercase">Nivel</span>
-                            <span id="modal-level" class="text-2xl font-bold text-primary"></span>
-                        </div>
-                        <div class="mt-4 bg-gray-900/70 rounded-lg border border-gray-700 p-4">
-                            <h4 class="text-xs font-bold uppercase tracking-[0.2em] text-white mb-3">Atributos principales</h4>
-                            <div id="modal-stats" class="grid grid-cols-1 gap-3">
-                                <!-- Injected stats -->
-                            </div>
-                        </div>
-                    </div>
-                    <div class="w-full md:w-2/3 space-y-4">
-                        <div class="bg-dark rounded-lg border border-gray-700 p-4 shadow-inner">
-                            <h4 class="text-xs font-bold uppercase tracking-[0.2em] text-primary mb-2">Lore redactado a mano</h4>
-                            <div class="text-sm text-gray-200 leading-relaxed italic whitespace-pre-line" id="modal-story"></div>
-                        </div>
-                        
-                        <div class="grid grid-cols-2 gap-4">
-                            <div class="bg-gray-800/50 p-2 rounded text-center border border-gray-700">
-                                <span class="text-xs text-gray-400">Batallas</span><br>
-                                <span id="modal-battles" class="font-bold"></span>
-                            </div>
-                            <div class="bg-gray-800/50 p-2 rounded text-center border border-gray-700">
-                                <span class="text-xs text-gray-400">Puntos Pendientes (Pos/Neg)</span><br>
-                                <span class="font-bold text-success" id="modal-pos"></span> / <span class="font-bold text-danger" id="modal-neg"></span>
-                            </div>
-                        </div>
-
-                        <!-- Action Areas (Points / Milestones) -->
-                        <div id="modal-action-area" class="hidden bg-indigo-950/30 border border-indigo-500/50 rounded-lg p-4 mt-4">
-                            <!-- Injected dynamically -->
-                        </div>
-
-                        <div class="bg-yellow-950/20 rounded-lg border border-yellow-700/40 p-4">
-                            <h4 class="text-xs font-bold uppercase tracking-[0.2em] text-yellow-300 mb-3">Hitos de evolución</h4>
-                            <div id="modal-milestone-cards" class="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-80 overflow-y-auto pr-2 text-gray-300">
-                                <!-- Milestone cards -->
-                            </div>
-                        </div>
-
-                        <div class="bg-gray-900/70 rounded-lg border border-gray-700 p-4">
-                            <div class="flex items-center justify-between gap-3 mb-3">
-                                <div>
-                                    <h4 class="text-xs font-bold uppercase tracking-[0.2em] text-white">Sociedades</h4>
-                                    <p class="text-xs text-gray-500 mt-1">Aliados, rivales y traiciones se revisan aquí.</p>
-                                </div>
-                                <button onclick="toggleSocieties()" class="bg-gray-800 hover:bg-gray-700 text-white text-xs font-bold px-3 py-2 rounded-lg border border-gray-600 transition">Sociedades</button>
-                            </div>
-                            <div id="modal-societies" class="hidden space-y-3 text-sm">
-                                <!-- Relationship tags -->
-                            </div>
-                        </div>
-                    </div>
+    </div>
+    <div id="modal-nuevo-mazo" class="modal">
+        <div class="modal-contenido-mazo">
+            <span class="cerrar-modal-mazo">&times;</span>
+            <h2>Constructor de Mazo</h2>
+            <div class="constructor-mazo-contenedor">
+                <div class="panel-izquierdo">
+                    <h3>Personajes Disponibles</h3>
+                    <div id="personajes-disponibles" class="galeria-grid"></div>
+                </div>
+                <div class="panel-derecho">
+                    <h3>Mazo Actual (<span id="contador-mazo">0</span>/50)</h3>
+                    <div id="personajes-mazo" class="galeria-grid mazo-grid"></div>
+                    <button id="btn-guardar-mazo">Guardar mazo</button>
                 </div>
             </div>
         </div>
     </div>
-
-    <script>
-        // State Management
-        let state = {
-            characters: [],
-            rotationPool: [],
-            relationships: {}
-        };
-
-        // Constants
-        const ATTRS = [
-            { key: 'INT', name: 'Inteligencia', color: 'blue' },
-            { key: 'STR', name: 'Fuerza', color: 'red' },
-            { key: 'SPD', name: 'Velocidad', color: 'yellow' },
-            { key: 'MAG', name: 'Magia', color: 'purple' }
-        ];
-        
-        const MILESTONE_CATEGORIES = [
-            {
-                label: '⚔️ Equipamiento y Posesiones',
-                types: [
-                    { name: 'Arma', hint: 'Arma nueva o mejora de una existente.' },
-                    { name: 'Armadura', hint: 'Protección física o mágica.' },
-                    { name: 'Artefacto / Reliquia', hint: 'Objeto de poder que no es arma ni armadura.' },
-                    { name: 'Montura / Vehículo', hint: 'Transporte o bestia de carga.' },
-                    { name: 'Refugio / Territorio', hint: 'Lugar que ahora reclama como propio.' }
-                ]
-            },
-            {
-                label: '🧠 Desarrollo Personal y Mental',
-                types: [
-                    { name: 'Acontecimiento', hint: 'Suceso impactante que cambió su perspectiva.' },
-                    { name: 'Sabiduría / Revelación', hint: 'Conocimiento profundo o secreto descubierto.' },
-                    { name: 'Miedo / Trauma', hint: 'Fobia o herida psicológica tras las batallas.' },
-                    { name: 'Debilidad', hint: 'Limitación física o mágica adquirida.' },
-                    { name: 'Mutación / Marca Física', hint: 'Cambio permanente en su cuerpo.' }
-                ]
-            },
-            {
-                label: '🤝 Relaciones y Estatus Social',
-                types: [
-                    { name: 'Compañero', hint: 'Aliado incondicional, mascota o aprendiz.' },
-                    { name: 'Rival', hint: 'Alguien enfrentado múltiples veces.' },
-                    { name: 'Venganza / Traición', hint: 'Ruptura de una alianza.' },
-                    { name: 'Clan / Facción', hint: 'Ingreso o expulsión de un grupo.' },
-                    { name: 'Título / Apodo', hint: 'Reputación ganada en el mundo.' },
-                    { name: 'Misión / Objetivo Vital', hint: 'Meta que guiará sus pasos.' },
-                    { name: 'Deuda / Obligación', hint: 'Favor, vida o dinero pendiente.' }
-                ]
-            },
-            {
-                label: '🔮 Fuerzas Sobrenaturales o del Destino',
-                types: [
-                    { name: 'Maldición', hint: 'Efecto negativo constante.' },
-                    { name: 'Bendición / Don', hint: 'Favor especial sobrenatural o genético.' },
-                    { name: 'Pacto / Juramento', hint: 'Contrato que no puede romper.' }
-                ]
-            }
-        ];
-        const MILESTONE_TYPES = MILESTONE_CATEGORIES.flatMap(category => category.types);
-        const MILESTONE_COLORS = {
-            'Arma': 'bg-red-950/70 text-red-200 border-red-700',
-            'Armadura': 'bg-slate-800 text-slate-200 border-slate-500',
-            'Artefacto / Reliquia': 'bg-amber-950/70 text-amber-200 border-amber-600',
-            'Montura / Vehículo': 'bg-orange-950/70 text-orange-200 border-orange-600',
-            'Refugio / Territorio': 'bg-emerald-950/70 text-emerald-200 border-emerald-600',
-            'Acontecimiento': 'bg-indigo-950/70 text-indigo-200 border-indigo-600',
-            'Sabiduría / Revelación': 'bg-cyan-950/70 text-cyan-200 border-cyan-600',
-            'Miedo / Trauma': 'bg-purple-950/70 text-purple-200 border-purple-600',
-            'Debilidad': 'bg-stone-900 text-stone-200 border-stone-500',
-            'Mutación / Marca Física': 'bg-lime-950/70 text-lime-200 border-lime-600',
-            'Compañero': 'bg-green-950/70 text-green-200 border-green-600',
-            'Rival': 'bg-rose-950/70 text-rose-200 border-rose-600',
-            'Venganza / Traición': 'bg-fuchsia-950/70 text-fuchsia-200 border-fuchsia-600',
-            'Traición': 'bg-fuchsia-950/70 text-fuchsia-200 border-fuchsia-600',
-            'Venganza': 'bg-fuchsia-950/70 text-fuchsia-200 border-fuchsia-600',
-            'Clan / Facción': 'bg-blue-950/70 text-blue-200 border-blue-600',
-            'Clan': 'bg-blue-950/70 text-blue-200 border-blue-600',
-            'Título / Apodo': 'bg-yellow-950/70 text-yellow-200 border-yellow-600',
-            'Misión / Objetivo Vital': 'bg-teal-950/70 text-teal-200 border-teal-600',
-            'Misión': 'bg-teal-950/70 text-teal-200 border-teal-600',
-            'Deuda / Obligación': 'bg-pink-950/70 text-pink-200 border-pink-600',
-            'Maldición': 'bg-violet-950/70 text-violet-200 border-violet-600',
-            'Bendición / Don': 'bg-sky-950/70 text-sky-200 border-sky-600',
-            'Pacto / Juramento': 'bg-gray-900 text-gray-200 border-gray-500'
-        };
-
-        // Initialization
-        function init() {
-            const saved = localStorage.getItem('nexusRpgState');
-            if (saved) state = JSON.parse(saved);
-            state.characters.forEach(char => {
-                char.pendingMilestones = char.pendingMilestones || 0;
-                char.story = cleanHandwrittenStory(char.story);
-                char.milestones = (char.milestones || []).map(milestone => {
-                    const normalized = normalizeMilestone(milestone);
-                    return isAutomaticSocietyMilestone(milestone) ? { ...normalized, auto: true } : normalized;
-                });
-                if (char.pendingAction === 'milestone') {
-                    char.pendingMilestones = Math.max(char.pendingMilestones, 1);
-                    char.pendingAction = null;
-                }
-            });
-            
-            // Render initial view
-            renderGallery();
-            updateBattleButton();
-        }
-
-        function saveState() {
-            localStorage.setItem('nexusRpgState', JSON.stringify(state));
-            renderGallery();
-            updateBattleButton();
-        }
-
-        function generateId() {
-            return Math.random().toString(36).substr(2, 9);
-        }
-
-        function toggleCreateForm(forceOpen = null) {
-            const panel = document.getElementById('create-char-panel');
-            const button = document.getElementById('btn-toggle-create');
-            const shouldOpen = forceOpen === null ? panel.classList.contains('hidden') : forceOpen;
-            panel.classList.toggle('hidden', !shouldOpen);
-            button.innerText = shouldOpen ? 'Ocultar formulario' : '+ Nuevo personaje';
-        }
-
-        function queueMilestone(char) {
-            char.pendingMilestones = (char.pendingMilestones || 0) + 1;
-        }
-
-        function getMilestoneColor(type) {
-            return MILESTONE_COLORS[type] || 'bg-gray-800 text-gray-200 border-gray-600';
-        }
-
-        function escapeAttr(value) {
-            return String(value || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-        }
-
-        function getImageHtml(src, alt, classes, id = '') {
-            const safeAlt = escapeAttr(alt || 'Personaje sin imagen');
-            const safeSrc = escapeAttr(src || '');
-            const safeClasses = escapeAttr(classes);
-            const idAttr = id ? ` id="${escapeAttr(id)}"` : '';
-            const fallbackAttrs = `data-fallback-alt="Silueta de ${safeAlt}" data-fallback-class="${safeClasses}"`;
-            const silhouette = `<div${idAttr} role="img" aria-label="Silueta de ${safeAlt}" class="${safeClasses} silhouette flex items-end justify-center text-gray-500 text-xs pb-3">Sin imagen</div>`;
-            if (!safeSrc) return silhouette;
-            return `<img${idAttr} src="${safeSrc}" alt="${safeAlt}" class="${safeClasses}" ${fallbackAttrs} onerror="replaceBrokenImage(this)">`;
-        }
-
-        function replaceBrokenImage(img) {
-            const fallback = document.createElement('div');
-            if (img.id) fallback.id = img.id;
-            fallback.setAttribute('role', 'img');
-            fallback.setAttribute('aria-label', img.dataset.fallbackAlt || 'Silueta de personaje sin imagen');
-            fallback.className = `${img.dataset.fallbackClass || ''} silhouette flex items-end justify-center text-gray-500 text-xs pb-3`;
-            fallback.textContent = 'Sin imagen';
-            img.replaceWith(fallback);
-        }
-
-        function isAutomaticSocietyMilestone(milestone) {
-            const normalized = normalizeMilestone(milestone);
-            const autoTypes = ['Compañero', 'Rival', 'Venganza / Traición', 'Traición', 'Venganza'];
-            return Boolean(milestone && milestone.auto) || autoTypes.includes(normalized.type);
-        }
-
-        function cleanHandwrittenStory(story) {
-            return String(story || '')
-                .split('\n')
-                .filter(line => !/^\s*\[?Hito Autom[aá]tico\s*[-–:]/i.test(line.trim()))
-                .join('\n')
-                .trim();
-        }
-
-        function normalizeMilestone(milestone) {
-            if (typeof milestone === 'string') return { type: 'Hito', name: milestone, description: '', image: '' };
-            return {
-                type: milestone.type || 'Hito',
-                name: milestone.name || milestone.note || 'Sin nombre',
-                description: milestone.description || milestone.note || '',
-                image: milestone.image || ''
-            };
-        }
-
-        function milestoneOptionsHtml() {
-            return MILESTONE_CATEGORIES.map(category => `
-                <optgroup label="${category.label}">
-                    ${category.types.map(type => `<option value="${type.name}" title="${type.hint}">${type.name}</option>`).join('')}
-                </optgroup>
-            `).join('');
-        }
-
-        // Tab Switching
-        function switchTab(tab) {
-            document.getElementById('section-management').classList.add('hidden');
-            document.getElementById('section-battle').classList.add('hidden');
-            document.getElementById('nav-management').classList.replace('bg-gray-800', 'text-gray-300');
-            document.getElementById('nav-battle').classList.replace('bg-gray-800', 'text-gray-300');
-            
-            document.getElementById(`section-${tab}`).classList.remove('hidden');
-            document.getElementById(`nav-${tab}`).classList.add('bg-gray-800');
-            document.getElementById(`nav-${tab}`).classList.remove('text-gray-300');
-        }
-
-        document.getElementById('create-char-form').addEventListener('submit', (e) => {
-            e.preventDefault();
-            const newChar = {
-                id: generateId(),
-                name: document.getElementById('char-name').value,
-                image: document.getElementById('char-image').value.trim(),
-                story: document.getElementById('char-story').value,
-                stats: {
-                    INT: parseInt(document.getElementById('char-int').value),
-                    STR: parseInt(document.getElementById('char-str').value),
-                    SPD: parseInt(document.getElementById('char-spd').value),
-                    MAG: parseInt(document.getElementById('char-mag').value)
-                },
-                level: 1,
-                cap: 100,
-                breakthroughPoints: { INT: 0, STR: 0, SPD: 0, MAG: 0 },
-                points: { pos: 0, neg: 0 },
-                battles: 0,
-                milestones: [],
-                pendingMilestones: 0,
-                pendingAction: null // 'points'
-            };
-            
-            state.characters.push(newChar);
-            saveState();
-            e.target.reset();
-            toggleCreateForm(false);
-        });
-
-        function renderGallery() {
-            const container = document.getElementById('char-gallery');
-            container.innerHTML = '';
-            document.getElementById('char-count').innerText = state.characters.length;
-
-            state.characters.forEach(char => {
-                const totalPoints = char.points.pos + char.points.neg;
-                const needsPoints = totalPoints >= 10;
-                const needsMilestone = (char.pendingMilestones || 0) > 0;
+    <script src="script.js"></script>
+    <div id="modal-evolucion" class="modal">
+        <div class="modal-contenido">
+            <span class="cerrar-modal" onclick="cerrarModalEvolucion()">&times;</span>
+            <div id="contenido-evolucion"></div>
+        </div>
+    </div>
+    <div id="modal-tarjeta-historia" class="modal">
+        <div class="modal-contenido modal-historia-tarjetas">
+            <span class="cerrar-modal" onclick="cerrarModalTarjetaHistoria()">&times;</span>
+            <h2>TARJETA DE MODIFICACIÓN DE HISTORIA</h2>
+            <div class="contenedor-grupos-tarjetas">
                 
-                // Prioritize setting pending action states visually
-                if (needsPoints) char.pendingAction = 'points';
-                
-                let badges = '';
-                if (char.pendingAction === 'points') badges += `<span class="absolute top-2 right-2 bg-red-600 text-white text-xs font-bold px-2 py-1 rounded shadow animate-pulse">¡Asignar Puntos!</span>`;
-                if (needsMilestone) badges += `<span class="absolute top-2 left-2 bg-yellow-500 text-black text-xs font-bold px-2 py-1 rounded shadow animate-pulse">¡Hito Disponible!</span>`;
-
-                const card = document.createElement('div');
-                card.className = 'char-card bg-card border border-gray-800 rounded-xl overflow-hidden relative cursor-pointer';
-                card.onclick = () => openCharModal(char.id);
-                card.innerHTML = `
-                    ${badges}
-                    ${getImageHtml(char.image, char.name, 'w-full h-48 object-cover object-top')}
-                    <div class="p-4">
-                        <h3 class="font-bold text-lg text-white truncate">${char.name}</h3>
-                        <p class="text-sm text-primary mb-2">Nivel ${char.level} | ${char.battles} Batallas</p>
-                        <div class="flex gap-2 text-xs">
-                            <span class="text-blue-400">INT: ${char.stats.INT}</span>
-                            <span class="text-red-400">FZA: ${char.stats.STR}</span>
-                            <span class="text-yellow-400">VEL: ${char.stats.SPD}</span>
-                            <span class="text-purple-400">MAG: ${char.stats.MAG}</span>
-                        </div>
+                <div class="grupo-tarjetas grupo-equipamiento">
+                    <h3>Equipamiento y Objetos</h3>
+                    <div class="grid-botones-tarjetas">
+                        <button class="btn-tarjeta-tipo" onclick="abrirFormularioArma()">Arma</button>
+                        <button class="btn-tarjeta-tipo" onclick="abrirFormularioArmadura()">Armadura</button>
+                        <button class="btn-tarjeta-tipo" onclick="abrirFormularioReliquia()">Reliquia</button>
+                        <button class="btn-tarjeta-tipo" onclick="abrirFormularioMontura()">Montura</button>
+                        <button class="btn-tarjeta-tipo" onclick="abrirFormularioConocimiento()">Conocimiento</button>
+                        <button class="btn-tarjeta-tipo" onclick="abrirFormularioConsumible()">Consumible</button>                    
                     </div>
-                `;
-                container.appendChild(card);
-            });
-        }
-
-        let currentCharId = null;
-
-        function openCharModal(id) {
-            const char = state.characters.find(c => c.id === id);
-            if (!char) return;
-            currentCharId = id;
-
-            document.getElementById('modal-name').innerText = char.name;
-            const modalImageFrame = document.getElementById('modal-img');
-            modalImageFrame.outerHTML = getImageHtml(char.image, char.name, 'w-full h-64 object-cover rounded-lg border border-gray-700 shadow-md', 'modal-img');
-            document.getElementById('modal-level').innerText = char.level;
-            document.getElementById('modal-story').innerText = cleanHandwrittenStory(char.story);
-            document.getElementById('modal-battles').innerText = char.battles;
-            document.getElementById('modal-pos').innerText = `+${char.points.pos}`;
-            document.getElementById('modal-neg').innerText = `-${char.points.neg}`;
-
-            renderModalStats(char);
-            renderModalMilestones(char);
-            renderSocieties(char);
-            
-            const actionArea = document.getElementById('modal-action-area');
-            actionArea.innerHTML = '';
-            actionArea.classList.add('hidden');
-
-            if (char.pendingAction === 'points') {
-                actionArea.classList.remove('hidden');
-                actionArea.innerHTML = `
-                    <h4 class="text-sm font-bold text-white mb-2 flex items-center gap-2">⚠️ Límite de puntos alcanzado (10)</h4>
-                    <p class="text-xs text-gray-300 mb-4">Asigna TODOS los puntos positivos a un medidor y TODOS los negativos a otro (pueden ser el mismo). Tope actual: ${char.cap}</p>
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-xs mb-1 text-success">Asignar +${char.points.pos} a:</label>
-                            <select id="assign-pos" class="w-full bg-dark border border-gray-700 rounded p-1 text-white text-sm">
-                                ${ATTRS.map(a => `<option value="${a.key}">${a.name}</option>`).join('')}
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-xs mb-1 text-danger">Asignar -${char.points.neg} a:</label>
-                            <select id="assign-neg" class="w-full bg-dark border border-gray-700 rounded p-1 text-white text-sm">
-                                ${ATTRS.map(a => `<option value="${a.key}">${a.name}</option>`).join('')}
-                            </select>
-                        </div>
-                    </div>
-                    <button onclick="confirmPoints()" class="mt-4 w-full bg-primary hover:bg-indigo-600 text-white font-bold py-2 rounded text-sm transition">Confirmar Asignación</button>
-                `;
-            }
-
-            if ((char.pendingMilestones || 0) > 0) {
-                actionArea.classList.remove('hidden');
-                actionArea.innerHTML += `
-                    <div class="${char.pendingAction === 'points' ? 'mt-4 border-t border-indigo-500/40 pt-4' : ''}">
-                        <h4 class="text-sm font-bold text-white mb-2 flex items-center gap-2">🌟 Hito Evolutivo Disponible (${char.pendingMilestones})</h4>
-                        <p class="text-xs text-gray-300 mb-2">Cada 20 batallas desbloquean una tarjeta de hito. Completa tipo, nombre, descripción y una imagen opcional.</p>
-                        <select id="ms-type" class="w-full bg-dark border border-gray-700 rounded p-2 text-white text-sm mb-2">
-                            ${milestoneOptionsHtml()}
-                        </select>
-                        <input id="ms-name" placeholder="Nombre del hito..." required class="w-full bg-dark border border-gray-700 rounded p-2 text-white text-sm focus:border-primary mb-2">
-                        <textarea id="ms-description" placeholder="Descripción redactada del hito..." required rows="3" class="w-full bg-dark border border-gray-700 rounded p-2 text-white text-sm focus:border-primary mb-2"></textarea>
-                        <input type="url" id="ms-image" placeholder="URL de imagen opcional..." class="w-full bg-dark border border-gray-700 rounded p-2 text-white text-sm focus:border-primary">
-                        <button onclick="confirmMilestone()" class="mt-2 w-full bg-yellow-600 hover:bg-yellow-500 text-white font-bold py-2 rounded text-sm transition">Registrar Hito</button>
-                    </div>
-                `;
-            }
-
-            document.getElementById('char-modal').classList.remove('hidden');
-        }
-
-        function closeModal() {
-            document.getElementById('char-modal').classList.add('hidden');
-            currentCharId = null;
-        }
-
-        function renderModalStats(char) {
-            const container = document.getElementById('modal-stats');
-            container.innerHTML = '';
-            
-            ATTRS.forEach(attr => {
-                const val = char.stats[attr.key];
-                const pct = Math.min((val / char.cap) * 100, 100);
-                const isCapped = val >= char.cap;
-                const btText = isCapped ? `<span class="text-xs text-yellow-500 ml-2">(B-Through: ${char.breakthroughPoints[attr.key]}/5)</span>` : '';
-                
-                container.innerHTML += `
-                    <div class="bg-dark rounded-lg border border-gray-800 p-3">
-                        <div class="flex justify-between text-xs mb-2">
-                            <span class="text-${attr.color}-400 font-bold uppercase tracking-wide">${attr.name}</span>
-                            <span class="font-semibold">${val} / ${char.cap} ${btText}</span>
-                        </div>
-                        <div class="w-full bg-gray-800 rounded-full h-3 overflow-hidden">
-                            <div class="bg-${attr.color}-500 h-3 rounded-full transition-all duration-500" style="width: ${pct}%"></div>
-                        </div>
-                    </div>
-                `;
-            });
-        }
-
-        function renderModalMilestones(char) {
-            const container = document.getElementById('modal-milestone-cards');
-            const milestones = (char.milestones || []).filter(m => !isAutomaticSocietyMilestone(m)).map(normalizeMilestone);
-            if (milestones.length === 0) {
-                container.innerHTML = '<div class="text-gray-500 italic text-xs col-span-full">Sin hitos registrados.</div>';
-                return;
-            }
-            container.innerHTML = milestones.map(m => `
-                <article class="min-h-48 rounded-xl border p-3 flex flex-col justify-between ${getMilestoneColor(m.type)}">
-                    ${m.image ? `<img src="${m.image}" alt="${m.name}" class="w-full aspect-square object-cover rounded-lg border border-white/10 mb-3" onerror="this.remove()">` : '<div class="w-full aspect-square rounded-lg border border-white/10 bg-black/20 mb-3 flex items-center justify-center text-3xl">✦</div>'}
-                    <div>
-                        <p class="text-[10px] uppercase tracking-[0.18em] opacity-80">${m.type}</p>
-                        <h5 class="font-bold text-base leading-tight mt-1">${m.name}</h5>
-                        <p class="text-xs font-normal leading-relaxed mt-2 opacity-90 whitespace-pre-line">${m.description}</p>
-                    </div>
-                </article>
-            `).join('');
-        }
-
-        function renderSocieties(char) {
-            const container = document.getElementById('modal-societies');
-            const socialMilestones = (char.milestones || []).filter(isAutomaticSocietyMilestone).map(normalizeMilestone);
-            if (socialMilestones.length === 0) {
-                container.innerHTML = '<p class="text-gray-500 italic text-xs">Sin sociedades registradas todavía.</p>';
-                return;
-            }
-            container.innerHTML = socialMilestones.map(m => `
-                <div class="rounded-lg border px-3 py-2 ${getMilestoneColor(m.type)}">
-                    <div class="flex justify-between gap-2 text-xs">
-                        <strong>${m.type}</strong>
-                        <span>${m.name}</span>
-                    </div>
-                    ${m.description ? `<p class="text-xs font-normal mt-1 opacity-90">${m.description}</p>` : ''}
                 </div>
-            `).join('');
-        }
 
-        function toggleSocieties() {
-            document.getElementById('modal-societies').classList.toggle('hidden');
-        }
-
-        function confirmPoints() {
-            const char = state.characters.find(c => c.id === currentCharId);
-            const posAttr = document.getElementById('assign-pos').value;
-            const negAttr = document.getElementById('assign-neg').value;
-            
-            // Apply Negative
-            char.stats[negAttr] = Math.max(1, char.stats[negAttr] - char.points.neg);
-            
-            // Apply Positive (with Cap & Breakthrough logic)
-            let pointsToAdd = char.points.pos;
-            let currentStat = char.stats[posAttr];
-            
-            if (currentStat < char.cap) {
-                let space = char.cap - currentStat;
-                if (pointsToAdd <= space) {
-                    char.stats[posAttr] += pointsToAdd;
-                    pointsToAdd = 0;
-                } else {
-                    char.stats[posAttr] = char.cap;
-                    pointsToAdd -= space;
-                }
-            }
-
-            // If points remaining and at cap, they go to breakthrough
-            if (pointsToAdd > 0 && char.stats[posAttr] >= char.cap) {
-                char.breakthroughPoints[posAttr] += pointsToAdd;
-                if (char.breakthroughPoints[posAttr] >= 5) {
-                    // Level UP!
-                    char.level++;
-                    char.cap += 100;
-                    char.stats[posAttr]++; // Becomes 101 for instance
-                    char.breakthroughPoints[posAttr] -= 5; // keep remainder
-                    alert(`¡${char.name} ha ROTO SU LÍMITE en ${posAttr} y ha subido a NIVEL ${char.level}! Su nuevo tope es ${char.cap}.`);
-                }
-            }
-
-            // Reset points
-            char.points.pos = 0;
-            char.points.neg = 0;
-            char.pendingAction = null;
-            
-            // Recheck if needs milestone immediately after point assignment
-            if (char.battles > 0 && char.battles % 20 === 0) {
-                // If they haven't claimed it yet, let's just queue it up visually.
-                // To keep simple, we don't auto force it here, it will appear on next click or if already flagged.
-            }
-
-            saveState();
-            openCharModal(char.id); // Refresh
-        }
-
-        function confirmMilestone() {
-            const char = state.characters.find(c => c.id === currentCharId);
-            const type = document.getElementById('ms-type').value;
-            const name = document.getElementById('ms-name').value.trim();
-            const description = document.getElementById('ms-description').value.trim();
-            const image = document.getElementById('ms-image').value.trim();
-            
-            if (!name || !description) {
-                alert("Debes escribir el nombre y la descripción del hito.");
-                return;
-            }
-
-            char.milestones.push({ type, name, description, image });
-            char.pendingMilestones = Math.max(0, (char.pendingMilestones || 0) - 1);
-            if (char.pendingAction !== 'points') char.pendingAction = null;
-
-            saveState();
-            openCharModal(char.id); // Refresh
-        }
-
-        function updateBattleButton() {
-            const btn = document.getElementById('btn-start-battle');
-            if (state.characters.length < 8) {
-                btn.disabled = true;
-                btn.innerText = `Recluta al menos 8 (Faltan ${8 - state.characters.length})`;
-            } else {
-                btn.disabled = false;
-                btn.innerText = "Iniciar Batalla 4v4";
-            }
-        }
-
-        let currentBattle = null;
-
-        function startBattle() {
-            document.getElementById('btn-start-battle').classList.add('hidden');
-            document.getElementById('battle-arena').classList.remove('hidden');
-            document.getElementById('battle-actions').classList.add('hidden');
-            document.getElementById('battle-log').innerHTML = '';
-            
-            // 1. Matchmaking with Rotation
-            let fightersIds = [];
-            let tempPool = [...state.rotationPool];
-            
-            while (fightersIds.length < 8) {
-                if (tempPool.length === 0) {
-                    // Refill pool with characters NOT already chosen in this selection
-                    tempPool = state.characters.map(c => c.id).filter(id => !fightersIds.includes(id));
-                }
-                const randIdx = Math.floor(Math.random() * tempPool.length);
-                fightersIds.push(tempPool.splice(randIdx, 1)[0]);
-            }
-            
-            // Update the real pool
-            state.rotationPool = tempPool;
-
-            // 2. Assign Teams
-            const redTeam = fightersIds.slice(0, 4).map(id => state.characters.find(c => c.id === id));
-            const blueTeam = fightersIds.slice(4, 8).map(id => state.characters.find(c => c.id === id));
-
-            // Setup current battle state
-            currentBattle = { redTeam, blueTeam, redWins: 0, blueWins: 0, duelsFought: 0 };
-            
-            renderTeam('red-corner', redTeam);
-            renderTeam('blue-corner', blueTeam);
-            
-            // Start combat sequence
-            setTimeout(executeCombat, 1000);
-        }
-
-        function renderTeam(containerId, team) {
-            const container = document.getElementById(containerId);
-            container.innerHTML = '';
-            team.forEach((char, idx) => {
-                container.innerHTML += `
-                    <div class="card-container perspective-1000" id="${containerId}-card-${idx}">
-                        <div class="card-flipper transform-style-3d transition-transform-duration">
-                            <!-- Card Front (Stats) - Rotated by default -->
-                            <div class="card-front backface-hidden bg-card border border-gray-700 flex flex-col">
-                                ${getImageHtml(char.image, char.name, 'w-full h-24 object-cover rounded-t-lg')}
-                                <div class="p-2 text-center flex-1 flex flex-col justify-between">
-                                    <h4 class="text-xs font-bold truncate text-white">${char.name}</h4>
-                                    <div class="grid grid-cols-2 gap-1 text-[10px] mt-1">
-                                        <div class="bg-gray-800 rounded text-blue-400">IN ${char.stats.INT}</div>
-                                        <div class="bg-gray-800 rounded text-red-400">FZ ${char.stats.STR}</div>
-                                        <div class="bg-gray-800 rounded text-yellow-400">VL ${char.stats.SPD}</div>
-                                        <div class="bg-gray-800 rounded text-purple-400">MG ${char.stats.MAG}</div>
-                                    </div>
-                                </div>
-                            </div>
-                            <!-- Card Back (Logo) -->
-                            <div class="card-back backface-hidden">
-                                ⚔️
-                            </div>
-                        </div>
+                <div class="grupo-tarjetas grupo-vinculos">
+                    <h3>Vínculos y Relaciones</h3>
+                    <div class="grid-botones-tarjetas">
+                        <button class="btn-tarjeta-tipo" onclick="abrirFormularioVinculo('Aliado')">Aliado</button>
+                        <button class="btn-tarjeta-tipo" onclick="abrirFormularioVinculo('Rival')">Rival</button>
+                        <button class="btn-tarjeta-tipo" onclick="abrirFormularioVinculo('Pareja')">Pareja</button>
                     </div>
-                `;
-            });
-        }
+                </div>
 
-        function logBattle(msg, isHighlight = false) {
-            const logBox = document.getElementById('battle-log');
-            const color = isHighlight ? 'text-white font-bold' : 'text-gray-300';
-            logBox.innerHTML += `<div class="${color}">${msg}</div>`;
-            logBox.scrollTop = logBox.scrollHeight;
-        }
+                <div class="grupo-tarjetas grupo-entorno">
+                    <h3>Entorno y Cobertura</h3>
+                    <div class="grid-botones-tarjetas">
+                        <button class="btn-tarjeta-tipo" onclick="abrirFormularioTerritorio()">Territorio</button>
+                        <button class="btn-tarjeta-tipo" onclick="abrirFormularioCampoFuerza()">Campo De Fuerza</button>
+                    </div>
+                </div>
 
-        async function executeCombat() {
-            const { redTeam, blueTeam } = currentBattle;
-            let attrsToUse = [...ATTRS].sort(() => Math.random() - 0.5); // Shuffle
-            
-            for (let i = 0; i < 4; i++) {
-                // Check Premature Victory
-                if (currentBattle.redWins === 3 || currentBattle.blueWins === 3) {
-                    logBattle(`¡VICTORIA PREMATURA! Un equipo alcanzó 3 victorias. El cuarto duelo se cancela.`, true);
-                    break; 
-                }
+                <div class="grupo-tarjetas grupo-estado">
+                    <h3>Estado y Condición</h3>
+                    <div class="grid-botones-tarjetas">
+                        <button class="btn-tarjeta-tipo" onclick="abrirFormularioVinculo('Amor')">Amor</button>
+                        <button class="btn-tarjeta-tipo" onclick="abrirFormularioVinculo('Odio')">Odio</button>
+                        <button class="btn-tarjeta-tipo" onclick="abrirFormularioDebilidad()">Debilidad</button>
+                        <button class="btn-tarjeta-tipo" onclick="abrirFormularioMiedo()">Miedo</button>
+                        <button class="btn-tarjeta-tipo" onclick="abrirFormularioInmunidad()">Inmunidad</button>
+                        <button class="btn-tarjeta-tipo" onclick="abrirFormularioMutacion()">Mutación</button>
+                        <button class="btn-tarjeta-tipo" onclick="abrirFormularioEnfermedad()">Enfermedad</button>
+                    </div>
+                </div>
 
-                const attr = attrsToUse[i];
-                currentBattle.duelsFought++;
-                const redChar = redTeam[i];
-                const blueChar = blueTeam[i];
-                const redVal = redChar.stats[attr.key];
-                const blueVal = blueChar.stats[attr.key];
+                <div class="grupo-tarjetas grupo-destino">
+                    <h3>Destino y Estrategia</h3>
+                    <div class="grid-botones-tarjetas">
+                        <button class="btn-tarjeta-tipo" onclick="abrirFormularioDestino('Venganza')">Venganza</button>
+                        <button class="btn-tarjeta-tipo" onclick="abrirFormularioDestino('Misión')">Misión</button>
+                        <button class="btn-tarjeta-tipo" onclick="abrirFormularioDestino('Deuda')">Deuda</button>
+                        <button class="btn-tarjeta-tipo" onclick="abrirFormularioMaldicion()">Maldición</button>
+                        <button class="btn-tarjeta-tipo" onclick="abrirFormularioBendicion()">Bendición</button>
+                    
+                    </div>
+                </div>
 
-                logBattle(`Duelo ${i+1}: Evaluando ${attr.name}...`);
-                await sleep(1000);
+                <div class="grupo-tarjetas grupo-esoterica">
+                    <h3>Esotéricas y de Poder</h3>
+                    <div class="grid-botones-tarjetas">
+                        <button class="btn-tarjeta-tipo">Plan</button>
+                        <button class="btn-tarjeta-tipo">Poder</button></div>
+                </div>
 
-                // Reveal Cards
-                document.getElementById(`red-corner-card-${i}`).classList.add('flipped');
-                document.getElementById(`blue-corner-card-${i}`).classList.add('flipped');
-                await sleep(800);
+            </div>
+        </div>
+    </div>
+    <div id="modal-recompensas" class="modal-recompensas" style="display: none;">
+        <div class="modal-recompensas-contenido">
+            <h2>Tus personajes han ganado:</h2>
+            <div id="contenedor-recompensas-personajes" class="recompensas-grid"></div>
+            <button id="btn-cerrar-recompensas">Guardar y Finalizar</button>
+        </div>
+    </div>
 
-                if (redVal > blueVal) {
-                    currentBattle.redWins++;
-                    logBattle(`🥊 ${redChar.name} (${redVal}) vence a ${blueChar.name} (${blueVal}). Punto ROJO.`);
-                } else if (blueVal > redVal) {
-                    currentBattle.blueWins++;
-                    logBattle(`🥊 ${blueChar.name} (${blueVal}) vence a ${redChar.name} (${redVal}). Punto AZUL.`);
-                } else {
-                    // Tie in duel goes to random
-                    const redWon = Math.random() > 0.5;
-                    if(redWon) currentBattle.redWins++; else currentBattle.blueWins++;
-                    logBattle(`🥊 Empate en ${attr.name} (${redVal}). Moneda decide: Punto ${redWon ? 'ROJO' : 'AZUL'}.`);
-                }
+    <div id="alerta-juego" class="modal-alerta" style="display: none;">
+        <div class="contenido-alerta">
+            <p id="texto-alerta"></p>
+            <button onclick="cerrarAlerta()">Aceptar</button>
+        </div>
+    </div>
+    <div id="modal-batalla" class="modal-batalla">
+        <div class="columna-a">
+            <div id="sector-a1" class="sector a1">A1</div>
+            <div id="sector-a2" class="sector a2">
+                <div id="casilleros-atributos">
+                    <div class="casillero" data-attr="fuerza">Fuerza (A1)</div>
+                    <div class="casillero" data-attr="inteligencia">Int (A2)</div>
+                    <div class="casillero" data-attr="magia">Magia (A4)</div>
+                    <div class="casillero" data-attr="velocidad">Vel (A3)</div>
+                    <div class="casillero" data-attr="defensa">Def (A5)</div>
+                </div>
+                <button id="btn-iniciar-duelo" disabled>Iniciar Duelo</button>
+                <button id="btn-finalizar-batalla" style="display: none;">FINALIZAR BATALLA</button>
+            </div>            <div id="sector-a3" class="sector a3">A3</div>
+        </div>
+        <div class="columna-b">
+            <div id="sector-b1" class="sector b1">B1</div>
+            <div id="sector-b2" class="sector b2">Historial de Duelos</div>
+            <div id="sector-b3" class="sector b3">B3</div>
+        </div>
+    </div>
+    
+    <div id="modal-editor-historia" class="modal">
+        <div class="modal-contenido form-scroll">
+            <span class="cerrar-modal" onclick="cerrarEditorHistoria()">&times;</span>
+            <h2>EDITAR HISTORIA DEL PERSONAJE</h2>
+            <div class="formulario-tarjeta">
+                <label>Historia actual:</label>
+                <textarea id="editor-historia-texto" rows="10" style="width: 100%; padding: 10px; background: #1a1a1a; color: white; border: 1px solid #4a3621; border-radius: 4px; resize: vertical; margin-bottom: 15px;"></textarea>
+                <button id="btn-guardar-historia" onclick="guardarHistoriaPersonaje()">GUARDAR HISTORIA Y REINICIAR DUELOS</button>
+            </div>
+        </div>
+    </div>
+    <div id="modal-formulario-equipamiento" class="modal">
+        <div class="modal-contenido form-scroll">
+            <span class="cerrar-modal" onclick="cerrarFormularioEquipamiento()">&times;</span>
+            <h2 id="titulo-formulario-equipamiento">CREAR TARJETA</h2>
+            <div class="formulario-tarjeta">
+                <input type="hidden" id="tipo-tarjeta-equipamiento">
+                <label>Nombre:</label>
+                <input type="text" id="nombre-tarjeta-equipamiento" placeholder="Nombre de la tarjeta">
                 
-                logBattle(`Marcador: ROJO ${currentBattle.redWins} - AZUL ${currentBattle.blueWins}`);
-                await sleep(1000);
-            }
-
-            // Evaluate Match End
-            if (currentBattle.redWins === currentBattle.blueWins) {
-                logBattle(`¡EMPATE GLOBAL! Resolviendo por Sumatoria Total...`, true);
-                await sleep(1500);
+                <label>Descripción:</label>
+                <textarea id="descripcion-tarjeta-equipamiento" placeholder="Descripción de la tarjeta"></textarea>
                 
-                let redSum = 0; let blueSum = 0;
-                for(let i=0; i<4; i++) {
-                    redSum += redTeam[i].stats.INT + redTeam[i].stats.STR + redTeam[i].stats.SPD + redTeam[i].stats.MAG;
-                    blueSum += blueTeam[i].stats.INT + blueTeam[i].stats.STR + blueTeam[i].stats.SPD + blueTeam[i].stats.MAG;
-                }
+                <label>Cantidad de puntos:</label>
+                <input type="number" id="puntos-tarjeta-equipamiento" value="0">
                 
-                logBattle(`Sumatoria ROJA: ${redSum} | Sumatoria AZUL: ${blueSum}`);
-                if (redSum >= blueSum) {
-                    currentBattle.redWins++;
-                    logBattle(`¡La Esquina ROJA gana el desempate!`, true);
-                } else {
-                    currentBattle.blueWins++;
-                    logBattle(`¡La Esquina AZUL gana el desempate!`, true);
-                }
-            }
+                <button id="btn-guardar-tarjeta" onclick="guardarTarjetaEquipamiento()">GUARDAR TARJETA</button>
+            </div>
+        </div>
+    </div>
 
-            const winner = currentBattle.redWins > currentBattle.blueWins ? 'ROJA' : 'AZUL';
-            logBattle(`🏆 BATALLA FINALIZADA. Gana la Esquina ${winner}.`, true);
-            
-            document.getElementById('battle-actions').classList.remove('hidden');
-        }
-
-        function finishBattle() {
-            const redWon = currentBattle.redWins > currentBattle.blueWins;
-            const participantsCount = currentBattle.duelsFought; // usually 4, unless early victory (3)
-            
-            const winningTeam = redWon ? currentBattle.redTeam : currentBattle.blueTeam;
-            const losingTeam = redWon ? currentBattle.blueTeam : currentBattle.redTeam;
-
-            // Process only those who fought (up to participantsCount)
-            for (let i = 0; i < participantsCount; i++) {
-                // Winners
-                let wChar = winningTeam[i];
-                wChar.battles++;
-                wChar.points.pos++;
-                if (wChar.battles % 20 === 0) queueMilestone(wChar);
+    <div id="modal-formulario-ben-mal" class="modal">
+        <div class="modal-contenido form-scroll">
+            <span class="cerrar-modal" onclick="cerrarFormularioBenMal()">&times;</span>
+            <h2 id="titulo-formulario-ben-mal">CREAR TARJETA</h2>
+            <div class="formulario-tarjeta">
+                <input type="hidden" id="tipo-tarjeta-ben-mal">
+                <label>Nombre:</label>
+                <input type="text" id="nombre-tarjeta-ben-mal" placeholder="Nombre de la tarjeta">
                 
-                // Losers
-                let lChar = losingTeam[i];
-                lChar.battles++;
-                lChar.points.neg++;
-                if (lChar.battles % 20 === 0) queueMilestone(lChar);
-            }
+                <label>Descripción:</label>
+                <textarea id="descripcion-tarjeta-ben-mal" placeholder="Descripción de la tarjeta"></textarea>
+                
+                <label>Puntos:</label>
+                <input type="number" id="puntos-tarjeta-ben-mal" value="0">
+                
+                <button id="btn-guardar-ben-mal" onclick="guardarTarjetaBenMal()">GUARDAR TARJETA</button>
+            </div>
+        </div>
+    </div>
 
-            // Process Relationships (Allies and Rivals) only for those who fought
-            const actualRed = currentBattle.redTeam.slice(0, participantsCount);
-            const actualBlue = currentBattle.blueTeam.slice(0, participantsCount);
-            
-            processRelationships(actualRed, actualBlue, winningTeam.includes(actualRed[0]) ? 'red' : 'blue');
+    <div id="modal-formulario-consumible" class="modal">
+        <div class="modal-contenido form-scroll">
+            <span class="cerrar-modal" onclick="cerrarFormularioConsumible()">&times;</span>
+            <h2>CREAR TARJETA: CONSUMIBLE</h2>
+            <div class="formulario-tarjeta">
+                <label>Nombre:</label>
+                <input type="text" id="nombre-tarjeta-consumible" placeholder="Nombre de la tarjeta">
+                
+                <label>Descripción:</label>
+                <textarea id="descripcion-tarjeta-consumible" placeholder="Descripción de la tarjeta"></textarea>
+                
+                <label>Atributo:</label>
+                <select id="atributo-tarjeta-consumible">
+                    <option value="fuerza">Fuerza</option>
+                    <option value="inteligencia">Inteligencia</option>
+                    <option value="velocidad">Velocidad</option>
+                    <option value="magia">Magia</option>
+                    <option value="defensa">Defensa</option>
+                </select>
 
-            saveState();
-            
-            // Reset Arena UI
-            document.getElementById('battle-arena').classList.add('hidden');
-            document.getElementById('btn-start-battle').classList.remove('hidden');
-            currentBattle = null;
-            
-            // Switch back to management to see updates
-            switchTab('management');
-        }
+                <label>Puntos a Modificar:</label>
+                <input type="number" id="valor-tarjeta-consumible" value="0">
+                
+                <label>Cantidad de Turnos:</label>
+                <select id="turnos-tarjeta-consumible">
+                    <option value="1">1 Turno</option>
+                    <option value="2">2 Turnos</option>
+                    <option value="3">3 Turnos</option>
+                </select>
+                
+                <button id="btn-guardar-consumible" onclick="guardarTarjetaConsumible()">GUARDAR TARJETA</button>
+            </div>
+        </div>
+    </div>
 
-        function getRelKey(id1, id2) {
-            return [id1, id2].sort().join('_');
-        }
+    <div id="modal-formulario-vinculo" class="modal">
+        <div class="modal-contenido form-scroll">
+            <span class="cerrar-modal" onclick="cerrarFormularioVinculo()">&times;</span>
+            <h2 id="titulo-formulario-vinculo">CREAR VÍNCULO</h2>
+            <div class="formulario-tarjeta">
+                <input type="hidden" id="tipo-tarjeta-vinculo">
+                <label>Seleccionar Personaje:</label>
+                <select id="personaje-tarjeta-vinculo"></select>
+                
+                <label>Descripción:</label>
+                <textarea id="descripcion-tarjeta-vinculo" placeholder="Descripción de la tarjeta"></textarea>
+                
+                <label>Cantidad de Puntos:</label>
+                <input type="number" id="puntos-tarjeta-vinculo" value="0">
+                
+                <button id="btn-guardar-vinculo" onclick="guardarTarjetaVinculo()">GUARDAR TARJETA</button>
+            </div>
+        </div>
+    </div>
 
-        function processRelationships(redTeam, blueTeam, winnerTeamStr) {
-            const updateRel = (c1, c2, type, winnerStr = null, loserStr = null) => {
-                if(c1.id === c2.id) return;
-                const key = getRelKey(c1.id, c2.id);
-                if (!state.relationships[key]) {
-                    state.relationships[key] = { allies: 0, rivals: 0, hasCompanero: false, hasRival: false };
-                }
-                let rel = state.relationships[key];
+    <div id="modal-formulario-entorno" class="modal">
+        <div class="modal-contenido form-scroll">
+            <span class="cerrar-modal" onclick="cerrarFormularioEntorno()">&times;</span>
+            <h2 id="titulo-formulario-entorno">CREAR ENTORNO</h2>
+            <div class="formulario-tarjeta">
+                <input type="hidden" id="tipo-tarjeta-entorno">
+                <label>Nombre:</label>
+                <input type="text" id="nombre-tarjeta-entorno" placeholder="Nombre de la tarjeta">
+                
+                <label>Descripción:</label>
+                <textarea id="descripcion-tarjeta-entorno" placeholder="Descripción de la tarjeta"></textarea>
+                
+                <label>Cantidad de Puntos:</label>
+                <input type="number" id="puntos-tarjeta-entorno" value="0">
+                
+                <label>Tipo Afectado:</label>
+                <select id="tipo-afectado-entorno">
+                    <option value="Luchador">Luchador</option>
+                    <option value="Bruja">Bruja</option>
+                    <option value="Demonio">Demonio</option>
+                    <option value="Sirena">Sirena</option>
+                    <option value="Agua">Agua</option>
+                    <option value="Angel">Angel</option>
+                    <option value="Luz">Luz</option>
+                    <option value="Fantasma">Fantasma</option>
+                    <option value="Vampiro">Vampiro</option>
+                    <option value="Titan">Titan</option>
+                    <option value="Tierra">Tierra</option>
+                    <option value="Druida">Druida</option>
+                    <option value="Humano">Humano</option>
+                    <option value="Hada">Hada</option>
+                    <option value="Hierba">Hierba</option>
+                    <option value="Fuego">Fuego</option>
+                    <option value="Hielo">Hielo</option>
+                    <option value="Oscuro">Oscuro</option>
+                    <option value="Bestia">Bestia</option>
+                    <option value="Insecto">Insecto</option>
+                    <option value="Licantropo">Licantropo</option>
+                    <option value="Dragon">Dragon</option>
+                    <option value="Aire">Aire</option>
+                    <option value="Energia">Energia</option>
+                    <option value="Oscuridad">Oscuridad</option>
+                    <option value="Revenant">Revenant</option>
+                    <option value="Veneno">Veneno</option>
+                    <option value="Cyborg">Cyborg</option>
+                    <option value="Androide">Androide</option>
+                    <option value="Maquina">Maquina</option>
+                    <option value="Constructo">Constructo</option>
+                    <option value="Portador">Portador</option>
+                </select>
+                
+                <button id="btn-guardar-entorno" onclick="guardarTarjetaEntorno()">GUARDAR TARJETA</button>
+            </div>
+        </div>
+    </div>
+    <div id="modal-formulario-inmunidad" class="modal">
+        <div class="modal-contenido form-scroll">
+            <span class="cerrar-modal" onclick="cerrarFormularioInmunidad()">&times;</span>
+            <h2>CREAR TARJETA: INMUNIDAD</h2>
+            <div class="formulario-tarjeta">
+                <label>Nombre:</label>
+                <input type="text" id="nombre-tarjeta-inmunidad" placeholder="Nombre de la tarjeta">
+                
+                <label>Descripción:</label>
+                <textarea id="descripcion-tarjeta-inmunidad" placeholder="Descripción de la tarjeta"></textarea>
+                
+                <button id="btn-guardar-inmunidad" onclick="guardarTarjetaInmunidad()">GUARDAR TARJETA</button>
+            </div>
+        </div>
+    </div>
+    <div id="modal-formulario-enfermedad" class="modal">
+        <div class="modal-contenido form-scroll">
+            <span class="cerrar-modal" onclick="cerrarFormularioEnfermedad()">&times;</span>
+            <h2>CREAR TARJETA: ENFERMEDAD</h2>
+            <div class="formulario-tarjeta">
+                <label>Nombre:</label>
+                <input type="text" id="nombre-tarjeta-enfermedad" placeholder="Nombre de la tarjeta">
+                
+                <label>Descripción:</label>
+                <textarea id="descripcion-tarjeta-enfermedad" placeholder="Descripción de la tarjeta"></textarea>
+                
+                <label>Atributo Afectado:</label>
+                <select id="atributo-tarjeta-enfermedad">
+                    <option value="fuerza">Fuerza</option>
+                    <option value="inteligencia">Inteligencia</option>
+                    <option value="velocidad">Velocidad</option>
+                    <option value="magia">Magia</option>
+                    <option value="defensa">Defensa</option>
+                </select>
+                
+                <button id="btn-guardar-enfermedad" onclick="guardarTarjetaEnfermedad()">GUARDAR TARJETA</button>
+            </div>
+        </div>
+    </div>
+    <div id="modal-formulario-miedo-debilidad" class="modal">
+        <div class="modal-contenido form-scroll">
+            <span class="cerrar-modal" onclick="cerrarFormularioMiedoDebilidad()">&times;</span>
+            <h2 id="titulo-formulario-miedo-debilidad">CREAR TARJETA</h2>
+            <div class="formulario-tarjeta">
+                <input type="hidden" id="tipo-tarjeta-miedo-debilidad">
+                
+                <label>Nombre:</label>
+                <input type="text" id="nombre-tarjeta-miedo-debilidad" placeholder="Nombre de la tarjeta">
+                
+                <label>Descripción:</label>
+                <textarea id="descripcion-tarjeta-miedo-debilidad" placeholder="Descripción de la tarjeta"></textarea>
+                
+                <label>Tipo de Personaje Afectado:</label>
+                <select id="tipo-personaje-miedo-debilidad" onchange="actualizarPersonajesPorTipoMiedoDebilidad()">
+                    <option value="">-- Seleccionar Tipo --</option>
+                    <option value="Luchador">Luchador</option>
+                    <option value="Bruja">Bruja</option>
+                    <option value="Demonio">Demonio</option>
+                    <option value="Sirena">Sirena</option>
+                    <option value="Agua">Agua</option>
+                    <option value="Angel">Angel</option>
+                    <option value="Luz">Luz</option>
+                    <option value="Fantasma">Fantasma</option>
+                    <option value="Vampiro">Vampiro</option>
+                    <option value="Titan">Titan</option>
+                    <option value="Tierra">Tierra</option>
+                    <option value="Druida">Druida</option>
+                    <option value="Humano">Humano</option>
+                    <option value="Hada">Hada</option>
+                    <option value="Hierba">Hierba</option>
+                    <option value="Fuego">Fuego</option>
+                    <option value="Hielo">Hielo</option>
+                    <option value="Oscuro">Oscuro</option>
+                    <option value="Bestia">Bestia</option>
+                    <option value="Insecto">Insecto</option>
+                    <option value="Licantropo">Licantropo</option>
+                    <option value="Dragon">Dragon</option>
+                    <option value="Aire">Aire</option>
+                    <option value="Energia">Energia</option>
+                    <option value="Oscuridad">Oscuridad</option>
+                    <option value="Revenant">Revenant</option>
+                    <option value="Veneno">Veneno</option>
+                    <option value="Cyborg">Cyborg</option>
+                    <option value="Androide">Androide</option>
+                    <option value="Maquina">Maquina</option>
+                    <option value="Constructo">Constructo</option>
+                    <option value="Portador">Portador</option>
+                </select>
+                
+                <div id="contenedor-selector-personaje-miedo" style="display: none; margin-top: 10px;">
+                    <label>Personaje Específico (Opcional):</label>
+                    <select id="personaje-especifico-miedo-debilidad">
+                        <option value="">-- Todo el tipo --</option>
+                    </select>
+                </div>
+                
+                <button id="btn-guardar-miedo-debilidad" onclick="guardarTarjetaMiedoDebilidad()" style="margin-top: 15px;">GUARDAR TARJETA</button>
+            </div>
+        </div>
+    </div>
+    <div id="modal-formulario-destino" class="modal">
+        <div class="modal-contenido form-scroll">
+            <span class="cerrar-modal" onclick="cerrarFormularioDestino()">&times;</span>
+            <h2 id="titulo-formulario-destino">CREAR TARJETA</h2>
+            <div class="formulario-tarjeta">
+                <input type="hidden" id="tipo-tarjeta-destino">
+                
+                <label>Nombre:</label>
+                <input type="text" id="nombre-tarjeta-destino" placeholder="Nombre de la tarjeta">
+                
+                <label>Descripción:</label>
+                <textarea id="descripcion-tarjeta-destino" placeholder="Descripción de la tarjeta"></textarea>
+                
+                <label>Tipo de Personaje Afectado:</label>
+                <select id="tipo-personaje-destino" onchange="actualizarPersonajesPorTipoDestino()">
+                    <option value="">-- Seleccionar Tipo --</option>
+                    <option value="Luchador">Luchador</option>
+                    <option value="Bruja">Bruja</option>
+                    <option value="Demonio">Demonio</option>
+                    <option value="Sirena">Sirena</option>
+                    <option value="Agua">Agua</option>
+                    <option value="Angel">Angel</option>
+                    <option value="Luz">Luz</option>
+                    <option value="Fantasma">Fantasma</option>
+                    <option value="Vampiro">Vampiro</option>
+                    <option value="Titan">Titan</option>
+                    <option value="Tierra">Tierra</option>
+                    <option value="Druida">Druida</option>
+                    <option value="Humano">Humano</option>
+                    <option value="Hada">Hada</option>
+                    <option value="Hierba">Hierba</option>
+                    <option value="Fuego">Fuego</option>
+                    <option value="Hielo">Hielo</option>
+                    <option value="Oscuro">Oscuro</option>
+                    <option value="Bestia">Bestia</option>
+                    <option value="Insecto">Insecto</option>
+                    <option value="Licantropo">Licantropo</option>
+                    <option value="Dragon">Dragon</option>
+                    <option value="Aire">Aire</option>
+                    <option value="Energia">Energia</option>
+                    <option value="Oscuridad">Oscuridad</option>
+                    <option value="Revenant">Revenant</option>
+                    <option value="Veneno">Veneno</option>
+                    <option value="Cyborg">Cyborg</option>
+                    <option value="Androide">Androide</option>
+                    <option value="Maquina">Maquina</option>
+                    <option value="Constructo">Constructo</option>
+                    <option value="Portador">Portador</option>
+                </select>
+                
+                <div id="contenedor-selector-personaje-destino" style="display: none; margin-top: 10px;">
+                    <label>Personaje Específico (Opcional):</label>
+                    <select id="personaje-especifico-destino">
+                        <option value="">-- Todo el tipo --</option>
+                    </select>
+                </div>
 
-                if (type === 'ally') {
-                    rel.allies++;
-                    if (rel.hasRival && rel.allies === 5) {
-                        // Remove Rival
-                        rel.hasRival = false;
-                        rel.allies = 0;
-                        removeMilestone(c1, "Rival", c2.name);
-                        removeMilestone(c2, "Rival", c1.name);
-                    } else if (!rel.hasCompanero && !rel.hasRival && rel.allies === 5) {
-                        rel.hasCompanero = true;
-                        rel.allies = 0;
-                        addAutoMilestone(c1, "Compañero", c2.name);
-                        addAutoMilestone(c2, "Compañero", c1.name);
-                    }
-                } else if (type === 'rival') {
-                    rel.rivals++;
-                    if (rel.hasCompanero && rel.rivals === 5) {
-                        // Betrayal / Revenge
-                        rel.hasCompanero = false;
-                        rel.rivals = 0;
-                        // Determine who won this specific match
-                        let winnerChar = winnerStr === 'red' ? (redTeam.includes(c1) ? c1 : c2) : (blueTeam.includes(c1) ? c1 : c2);
-                        let loserChar = winnerChar.id === c1.id ? c2 : c1;
-                        
-                        addAutoMilestone(winnerChar, "Venganza / Traición", `Traicionó a ${loserChar.name}`);
-                        addAutoMilestone(loserChar, "Venganza / Traición", `Venganza contra ${winnerChar.name}`);
-                    } else if (!rel.hasCompanero && !rel.hasRival && rel.rivals === 5) {
-                        rel.hasRival = true;
-                        rel.rivals = 0;
-                        addAutoMilestone(c1, "Rival", c2.name);
-                        addAutoMilestone(c2, "Rival", c1.name);
-                    }
-                }
-            };
-
-            // Allies: Pairs within Red
-            for(let i=0; i<redTeam.length; i++) {
-                for(let j=i+1; j<redTeam.length; j++) {
-                    updateRel(redTeam[i], redTeam[j], 'ally');
-                }
-            }
-            // Allies: Pairs within Blue
-            for(let i=0; i<blueTeam.length; i++) {
-                for(let j=i+1; j<blueTeam.length; j++) {
-                    updateRel(blueTeam[i], blueTeam[j], 'ally');
-                }
-            }
-            // Rivals: Red vs Blue
-            for(let i=0; i<redTeam.length; i++) {
-                for(let j=0; j<blueTeam.length; j++) {
-                    updateRel(redTeam[i], blueTeam[j], 'rival', winnerTeamStr);
-                }
-            }
-        }
-
-        function addAutoMilestone(char, type, note) {
-            char.milestones.push({ type, name: note, description: note, image: '', auto: true });
-        }
-
-        function removeMilestone(char, type, relatedName) {
-            // Find and remove the specific rival milestone without exposing history in the handwritten lore.
-            char.milestones = char.milestones.filter(m => {
-                const normalized = normalizeMilestone(m);
-                return !(normalized.type === type && `${normalized.name} ${normalized.description}`.includes(relatedName));
-            });
-        }
-
-        // Utility: sleep for animations
-        const sleep = ms => new Promise(r => setTimeout(r, ms));
-
-        // Start app
-        init();
-    </script>
-</body>
+                <div id="contenedor-duelos-destino" style="margin-top: 10px;">
+                    <label>Cantidad de Duelos:</label>
+                    <select id="duelos-tarjeta-destino">
+                        <option value="1">1 Duelo</option>
+                        <option value="2">2 Duelos</option>
+                        <option value="3">3 Duelos</option>
+                        <option value="4">4 Duelos</option>
+                        <option value="5">5 Duelos</option>
+                    </select>
+                </div>
+                
+                <button id="btn-guardar-destino" onclick="guardarTarjetaDestino()" style="margin-top: 15px;">GUARDAR TARJETA</button>
+            </div>
+        </div>
+    </div>
+    <div id="modal-formulario-mutacion" class="modal">
+        <div class="modal-contenido form-scroll">
+            <span class="cerrar-modal" onclick="cerrarFormularioMutacion()">&times;</span>
+            <h2>CREAR TARJETA: MUTACIÓN</h2>
+            <div class="formulario-tarjeta">
+                <label>Nombre:</label>
+                <input type="text" id="nombre-tarjeta-mutacion" placeholder="Nombre de la tarjeta">
+                
+                <label>Descripción:</label>
+                <textarea id="descripcion-tarjeta-mutacion" placeholder="Descripción de la tarjeta"></textarea>
+                
+                <div style="background: #1a1a1a; padding: 15px; border-radius: 4px; margin: 15px 0; text-align: center; border: 1px solid #4a3621;">
+                    <p style="color: #88ff88; margin: 0;">Puntos disponibles para reasignar: <span id="puntos-mutacion-disponibles" style="font-weight: bold; font-size: 24px; display: inline-block; min-width: 30px;">0</span></p>
+                </div>
+                
+                <div id="contenedor-atributos-mutacion" style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 15px;">
+                    <!-- Se inyectarán los atributos por JS -->
+                </div>
+                
+                <button id="btn-guardar-mutacion" onclick="guardarTarjetaMutacion()">GUARDAR TARJETA</button>
+            </div>
+        </div>
+    </div>
 </html>
